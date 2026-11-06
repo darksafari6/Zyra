@@ -41,6 +41,8 @@ dependencies {
     implementation(libs.androidx.navigation.compose)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.runtime.compose)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.core.splashscreen)
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
