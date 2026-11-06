@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Build
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
@@ -18,6 +20,7 @@ class SpeechToText @Inject constructor(@ApplicationContext private val context: 
     private var partial: ((String) -> Unit)? = null
     private var final: ((String) -> Unit)? = null
     private var failure: ((String) -> Unit)? = null
+    private val mainHandler = Handler(Looper.getMainLooper())
 
     fun isAvailable() = SpeechRecognizer.isRecognitionAvailable(context)
 
@@ -37,7 +40,6 @@ class SpeechToText @Inject constructor(@ApplicationContext private val context: 
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageTag.ifBlank { Locale.getDefault().toLanguageTag() })
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
-                putExtra(RecognizerIntent.EXTRA_PREFER_OFFLINE, true)
             }
             recognizer?.startListening(intent)
         }.onFailure { onFailure(it.message ?: "Could not start speech recognition.") }
@@ -60,9 +62,9 @@ class SpeechToText @Inject constructor(@ApplicationContext private val context: 
         override fun onError(error: Int) { failure?.invoke(errorMessage(error)) }
     }
 
-    fun stopListening() { runCatching { recognizer?.stopListening() } }
-    fun cancel() { runCatching { recognizer?.cancel() } }
-    fun destroy() { runCatching { recognizer?.destroy() }; recognizer = null }
+    fun stopListening() { mainHandler.post { runCatching { recognizer?.stopListening() } } }
+    fun cancel() { mainHandler.post { runCatching { recognizer?.cancel() } } }
+    fun destroy() { mainHandler.post { runCatching { recognizer?.destroy() }; recognizer = null } }
 
     private fun errorMessage(code: Int) = when (code) {
         SpeechRecognizer.ERROR_AUDIO -> "Microphone audio error."
