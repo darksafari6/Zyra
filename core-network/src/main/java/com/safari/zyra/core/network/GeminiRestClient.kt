@@ -2,14 +2,14 @@ package com.safari.zyra.core.network
 
 import android.util.Base64
 import io.ktor.client.HttpClient
-import io.ktor.client.request.contentType
 import io.ktor.client.request.header
 import io.ktor.client.request.post
 import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
 import io.ktor.http.HttpStatusCode
-import io.ktor.utils.io.readLine
+import io.ktor.utils.io.readUTF8Line
 import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -24,6 +24,7 @@ class GeminiRestClient @Inject constructor(
     private val http: HttpClient
 ) : GeminiClient {
 
+    @Suppress("DEPRECATION")
     override fun streamReply(
         apiKey: String,
         modelId: String,
@@ -53,17 +54,19 @@ class GeminiRestClient @Inject constructor(
         try {
             val response = http.post(endpoint(modelId)) {
                 header("x-goog-api-key", apiKey.trim())
-                contentType(ContentType.Application.Json)
+                header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
                 setBody(body.toString())
             }
             if (response.status != HttpStatusCode.OK) {
                 val errorChannel = response.bodyAsChannel()
-                val errorBody = buildString { while (true) append(errorChannel.readLine() ?: break) }
+                val errorBody = buildString {
+                    while (true) append(errorChannel.readUTF8Line() ?: break)
+                }
                 throw mapHttpFailure(response.status.value, errorBody)
             }
             val channel = response.bodyAsChannel()
             while (true) {
-                val line = channel.readLine() ?: break
+                val line = channel.readUTF8Line() ?: break
                 if (!line.startsWith("data:")) continue
                 val payload = line.removePrefix("data:").trim()
                 if (payload.isBlank() || payload == "[DONE]") continue
