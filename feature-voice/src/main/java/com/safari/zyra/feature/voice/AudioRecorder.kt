@@ -69,16 +69,13 @@ class AudioRecorder @Inject constructor() {
     }
 
     suspend fun stop() {
-        val running = synchronized(this) { val old = job; job = null; old }
-        running?.cancelAndJoin()
-        synchronized(this) {
-            record?.let { audio ->
-                runCatching { if (audio.recordingState == AudioRecord.RECORDSTATE_RECORDING) audio.stop() }
-                audio.release()
-            }
-            record = null
-            mutableAmplitude.value = 0f
+        val pair = synchronized(this) { val oldJob = job; val oldRecord = record; job = null; record = null; oldJob to oldRecord }
+        pair.second?.let { audio ->
+            runCatching { if (audio.recordingState == AudioRecord.RECORDSTATE_RECORDING) audio.stop() }
         }
+        pair.first?.cancelAndJoin()
+        pair.second?.release()
+        mutableAmplitude.value = 0f
     }
 
     companion object {
