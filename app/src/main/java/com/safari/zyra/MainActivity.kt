@@ -11,6 +11,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -65,6 +66,7 @@ private fun ZyraNavigation() {
         introComplete = true
     }
     AnimatedContent(
+        modifier = Modifier.fillMaxSize().background(Color(0xFF05060A)),
         targetState = introComplete,
         transitionSpec = { fadeIn(tween(520)) togetherWith fadeOut(tween(300)) },
         label = "zyra-intro-to-chat"
