@@ -80,7 +80,7 @@ class SpeechToText @Inject constructor(@ApplicationContext private val context: 
     }
 
     private fun onMain(action: () -> Unit) {
-        if (Looper.myLooper() == Looper.getMainLooper()) action() else mainHandler.post(action)
+        if (Looper.myLooper() == Looper.getMainLooper()) action() else mainHandler.post { action() }
     }
     fun stopListening() { onMain { runCatching { recognizer?.stopListening() } } }
     fun cancel() { onMain { runCatching { recognizer?.cancel() } } }
