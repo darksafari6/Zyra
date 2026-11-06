@@ -17,6 +17,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
@@ -43,7 +44,11 @@ fun ZyraSplash(onFinished: () -> Unit) {
         onFinished()
     }
     Column(Modifier.fillMaxSize(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.Center) {
-        JellyOrb(modifier = Modifier.size(220.dp), enabled = true) {
+        JellyOrb(modifier = Modifier.size(220.dp).graphicsLayer {
+                val scale = .12f + .88f * reveal.value
+                scaleX = scale
+                scaleY = scale
+            }, enabled = true) {
             ZyraLogo(progress = reveal.value, modifier = Modifier.fillMaxSize())
         }
         Text("ZYRA", modifier = Modifier.alpha(nameAlpha.value), style = TextStyle(color = Color(0xFFEAF0FF), fontSize = 34.sp, fontWeight = FontWeight.Bold, letterSpacing = letterSpace.value.sp))
