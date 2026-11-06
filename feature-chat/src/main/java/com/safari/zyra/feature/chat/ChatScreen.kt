@@ -85,7 +85,6 @@ fun ChatScreen(
     var showMicRationale by remember { mutableStateOf(false) }
     val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) {
-            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
             viewModel.startVoice()
         } else viewModel.voicePermissionDenied()
     }
@@ -296,7 +295,7 @@ fun ChatScreen(
         AlertDialog(
             onDismissRequest = { showMicRationale = false },
             title = { Text("Allow microphone access?") },
-            text = { Text("ZYRA uses your microphone only when you tap the voice orb. Audio is processed for live speech recognition; the app does not keep microphone recordings. You can revoke access anytime in Android Settings.") },
+            text = { Text("ZYRA uses your microphone only when you tap the voice orb. The Android speech service may process speech on-device or online, depending on your device and language pack. ZYRA does not save raw microphone recordings. You can revoke access anytime in Android Settings.") },
             confirmButton = {
                 Button(onClick = {
                     showMicRationale = false
