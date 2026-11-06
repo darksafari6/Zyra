@@ -269,7 +269,7 @@ private fun MessageBubble(isUser: Boolean, text: String, imagePath: String?, str
 }
 
 private fun markdownText(source: String): AnnotatedString = buildAnnotatedString {
-    val regex = Regex("(\\*\\*.+?\\*\\*|`[^`]+`)")
+    val regex = Regex("(\\*\\*.+?\\*\\*|`[^`]+`|\\*[^*\\n]+\\*)")
     var cursor = 0
     regex.findAll(source).forEach { match ->
         append(source.substring(cursor, match.range.first))
@@ -278,9 +278,13 @@ private fun markdownText(source: String): AnnotatedString = buildAnnotatedString
             pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
             append(token.removePrefix("**").removeSuffix("**"))
             pop()
-        } else {
+        } else if (token.startsWith("`")) {
             pushStyle(SpanStyle(color = Color(0xFF73E8F5), background = Color(0xFF18283A)))
             append(token.trim('`'))
+            pop()
+        } else {
+            pushStyle(SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic))
+            append(token.trim('*'))
             pop()
         }
         cursor = match.range.last + 1
