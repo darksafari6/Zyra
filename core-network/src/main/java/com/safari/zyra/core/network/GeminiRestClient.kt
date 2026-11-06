@@ -41,13 +41,13 @@ class GeminiRestClient @Inject constructor(
         }
         val currentParts = JSONArray().put(JSONObject().put("text", userText))
         image?.let {
-            currentParts.put(JSONObject().put("inline_data", JSONObject()
-                .put("mime_type", it.mimeType)
+            currentParts.put(JSONObject().put("inlineData", JSONObject()
+                .put("mimeType", it.mimeType)
                 .put("data", Base64.encodeToString(it.bytes, Base64.NO_WRAP))))
         }
         contents.put(JSONObject().put("role", "user").put("parts", currentParts))
         val body = JSONObject()
-            .put("system_instruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", systemPrompt))))
+            .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", systemPrompt))))
             .put("contents", contents)
 
         try {
