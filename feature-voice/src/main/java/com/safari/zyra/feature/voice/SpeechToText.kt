@@ -21,6 +21,9 @@ class SpeechToText @Inject constructor(@ApplicationContext private val context: 
     private var final: ((String) -> Unit)? = null
     private var failure: ((String) -> Unit)? = null
     private val mainHandler = Handler(Looper.getMainLooper())
+    private var activeLanguage = "en-US"
+    private var usingOnDevice = false
+    private var fallbackAttempted = false
 
     fun isAvailable() = SpeechRecognizer.isRecognitionAvailable(context)
 
@@ -29,20 +32,27 @@ class SpeechToText @Inject constructor(@ApplicationContext private val context: 
         partial = onPartial
         final = onFinal
         failure = onFailure
+        activeLanguage = languageTag.ifBlank { Locale.getDefault().toLanguageTag() }
+        fallbackAttempted = false
+        startRecognizer(preferOnDevice = true)
+    }
+
+    private fun startRecognizer(preferOnDevice: Boolean) {
         runCatching {
             recognizer?.destroy()
-            recognizer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+            usingOnDevice = preferOnDevice && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
                 SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
-            ) SpeechRecognizer.createOnDeviceSpeechRecognizer(context) else SpeechRecognizer.createSpeechRecognizer(context)
+            recognizer = if (usingOnDevice) SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+                else SpeechRecognizer.createSpeechRecognizer(context)
             recognizer?.setRecognitionListener(listener())
             val intent = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                putExtra(RecognizerIntent.EXTRA_LANGUAGE, languageTag.ifBlank { Locale.getDefault().toLanguageTag() })
+                putExtra(RecognizerIntent.EXTRA_LANGUAGE, activeLanguage)
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
             }
             recognizer?.startListening(intent)
-        }.onFailure { onFailure(it.message ?: "Could not start speech recognition.") }
+        }.onFailure { failure?.invoke(it.message ?: "Could not start speech recognition.") }
     }
 
     private fun listener() = object : RecognitionListener {
@@ -59,7 +69,14 @@ class SpeechToText @Inject constructor(@ApplicationContext private val context: 
             val text = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull().orEmpty()
             if (text.isBlank()) failure?.invoke("I couldn't hear that clearly. Please try again.") else final?.invoke(text)
         }
-        override fun onError(error: Int) { failure?.invoke(errorMessage(error)) }
+        override fun onError(error: Int) {
+            val languageUnavailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S &&
+                (error == SpeechRecognizer.ERROR_LANGUAGE_NOT_SUPPORTED || error == SpeechRecognizer.ERROR_LANGUAGE_UNAVAILABLE)
+            if (usingOnDevice && languageUnavailable && !fallbackAttempted) {
+                fallbackAttempted = true
+                startRecognizer(preferOnDevice = false)
+            } else failure?.invoke(errorMessage(error))
+        }
     }
 
     private fun onMain(action: () -> Unit) {
