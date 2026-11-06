@@ -57,7 +57,7 @@ class GeminiRestClient @Inject constructor(
                 setBody(body.toString())
             }
             if (response.status != HttpStatusCode.OK) {
-                val errorBody = response.bodyAsChannel().readRemaining().readText()
+                val errorChannel = response.bodyAsChannel()\n                val errorBody = buildString { while (true) append(errorChannel.readUTF8Line() ?: break) }
                 throw mapHttpFailure(response.status.value, errorBody)
             }
             val channel = response.bodyAsChannel()
