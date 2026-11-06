@@ -15,6 +15,6 @@ android {
 dependencies {
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
-    implementation(libs.kotlinx.coroutines.android)
+    api(libs.kotlinx.coroutines.android)
     implementation(libs.hilt.android)
 }
