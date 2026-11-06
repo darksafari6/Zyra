@@ -149,9 +149,24 @@ class VoiceSession @Inject constructor(
     private fun armBargeIn(language: String) {
         if (bargeInStarted) return
         bargeInStarted = true
-        speech.start(language, {}, { spoken ->
-            if (spoken.trim().equals("stop", true) || spoken.trim().equals("stop speaking", true)) stopSpeaking()
-        }, {})
+        speech.start(
+            language,
+            {},
+            { spoken ->
+                if (spoken.trim().equals("stop", true) || spoken.trim().equals("stop speaking", true)) {
+                    stopSpeaking()
+                } else if (mutableState.value is VoiceState.Speaking) {
+                    bargeInStarted = false
+                    scope.launch { delay(250); armBargeIn(language) }
+                }
+            },
+            { message ->
+                if (message.contains("didn't catch", ignoreCase = true) && mutableState.value is VoiceState.Speaking) {
+                    bargeInStarted = false
+                    scope.launch { delay(350); armBargeIn(language) }
+                }
+            }
+        )
     }
 
     fun stopSpeaking() {
