@@ -9,6 +9,11 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -95,14 +100,14 @@ fun ChatScreen(
                 Text("by Safari", color = Color(0xFF8C9AB8), fontSize = 10.sp, letterSpacing = 1.sp)
             }
             Surface(
-                color = if (state.hasApiKey) Color(0x2220D8A0) else Color(0x22FFB74D),
+                color = if (state.hasApiKey && state.settings.textModelId.isNotBlank()) Color(0x2220D8A0) else Color(0x22FFB74D),
                 shape = CircleShape,
-                modifier = Modifier.border(1.dp, if (state.hasApiKey) Color(0x6648E0B0) else Color(0x66FFB74D), CircleShape)
+                modifier = Modifier.border(1.dp, if (state.hasApiKey && state.settings.textModelId.isNotBlank()) Color(0x6648E0B0) else Color(0x66FFB74D), CircleShape)
             ) {
                 Text(
-                    if (state.hasApiKey) "READY" else "SETUP KEY",
+                    if (state.hasApiKey && state.settings.textModelId.isNotBlank()) "READY" else "SETUP",
                     modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
-                    color = if (state.hasApiKey) Color(0xFF72E7BE) else Color(0xFFFFC56D),
+                    color = if (state.hasApiKey && state.settings.textModelId.isNotBlank()) Color(0xFF72E7BE) else Color(0xFFFFC56D),
                     fontSize = 9.sp,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
@@ -285,8 +290,15 @@ private fun TypingIndicator() {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
+        val transition = rememberInfiniteTransition(label = "typing-dots")
         repeat(3) { index ->
-            Box(Modifier.size(6.dp).background(Color(0xFF00E5FF).copy(alpha = .45f + index * .2f), CircleShape))
+            val alpha by transition.animateFloat(
+                initialValue = .25f,
+                targetValue = 1f,
+                animationSpec = infiniteRepeatable(tween(480, delayMillis = index * 140), RepeatMode.Reverse),
+                label = "typing-dot-$index"
+            )
+            Box(Modifier.size(6.dp).background(Color(0xFF00E5FF).copy(alpha = alpha), CircleShape))
         }
         Text("Zyra is thinking", color = Color(0xFF9BA7C2), fontSize = 11.sp)
     }
