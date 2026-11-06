@@ -61,6 +61,14 @@ class ChatViewModel @Inject constructor(
                     context.contentResolver.openInputStream(imageUri)?.use { input ->
                         target.outputStream().use { output -> input.copyTo(output) }
                     } ?: error("Could not read the selected image.")
+                    if (!mime.startsWith("image/")) {
+                        target.delete()
+                        error("The selected file is not a supported image.")
+                    }
+                    if (target.length() > 14L * 1024L * 1024L) {
+                        target.delete()
+                        error("Image is too large. Choose an image under 14 MB.")
+                    }
                     storedImagePath = target.absolutePath
                     image = GeminiImage(target.readBytes(), mime)
                 }
