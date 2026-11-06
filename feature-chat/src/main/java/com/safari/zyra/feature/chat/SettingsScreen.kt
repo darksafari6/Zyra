@@ -17,6 +17,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -42,6 +43,9 @@ fun SettingsScreen(
     var textModel by remember(state.settings.textModelId) { mutableStateOf(state.settings.textModelId) }
     var liveModel by remember(state.settings.liveModelId) { mutableStateOf(state.settings.liveModelId) }
     var prompt by remember(state.settings.systemPrompt) { mutableStateOf(state.settings.systemPrompt) }
+    var voiceLanguage by remember(state.settings.voiceLanguage) { mutableStateOf(state.settings.voiceLanguage) }
+    var voiceSpeed by remember(state.settings.voiceSpeed) { mutableStateOf(state.settings.voiceSpeed) }
+    var voicePitch by remember(state.settings.voicePitch) { mutableStateOf(state.settings.voicePitch) }
     var confirmClear by remember { mutableStateOf(false) }
 
     Column(
@@ -98,9 +102,24 @@ fun SettingsScreen(
             minLines = 4,
             colors = zyraFieldColors()
         )
+        Text("Voice preferences", color = Color(0xFF00E5FF), fontSize = 13.sp)
+        OutlinedTextField(
+            value = voiceLanguage,
+            onValueChange = { voiceLanguage = it },
+            modifier = Modifier.fillMaxWidth(),
+            label = { Text("Speech language (BCP-47)") },
+            placeholder = { Text("en-US, ur-PK, hi-IN") },
+            singleLine = true,
+            colors = zyraFieldColors()
+        )
+        Text("Speech speed: " + String.format("%.2fx", voiceSpeed), color = Color(0xFF9BA7C2), fontSize = 12.sp)
+        Slider(value = voiceSpeed, onValueChange = { voiceSpeed = it }, valueRange = 0.65f..1.5f)
+        Text("Voice pitch: " + String.format("%.2fx", voicePitch), color = Color(0xFF9BA7C2), fontSize = 12.sp)
+        Slider(value = voicePitch, onValueChange = { voicePitch = it }, valueRange = 0.7f..1.4f)
+
         Button(
             onClick = {
-                viewModel.saveSettings(textModel, liveModel, prompt)
+                viewModel.saveSettings(textModel, liveModel, prompt, voiceLanguage, voiceSpeed, voicePitch)
             },
             modifier = Modifier.fillMaxWidth()
         ) { Text("Save settings") }
