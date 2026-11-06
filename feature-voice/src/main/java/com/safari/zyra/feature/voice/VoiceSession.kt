@@ -1,6 +1,5 @@
 package com.safari.zyra.feature.voice
 
-import dagger.hilt.android.scopes.ViewModelScoped
 import com.safari.zyra.core.data.SettingsRepository
 import com.safari.zyra.core.data.chat.ChatMessage
 import com.safari.zyra.core.data.chat.ChatRepository
@@ -8,18 +7,19 @@ import com.safari.zyra.core.data.security.ApiKeyStore
 import com.safari.zyra.core.network.GeminiClient
 import com.safari.zyra.core.network.GeminiTurn
 import javax.inject.Inject
+import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.Job
-import kotlinx.coroutines.cancel
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
-@javax.inject.Singleton
+@Singleton
 class VoiceSession @Inject constructor(
     private val recorder: AudioRecorder,
     private val speech: SpeechToText,
@@ -35,6 +35,7 @@ class VoiceSession @Inject constructor(
     private var responseJob: Job? = null
     private var amplitudeJob: Job? = null
     private var sentenceBuffer = StringBuilder()
+    private var bargeInStarted = false
 
     fun startListening() {
         if (!speech.isAvailable()) {
@@ -42,7 +43,7 @@ class VoiceSession @Inject constructor(
             return
         }
         scope.launch {
-            stop()
+            stopInternal()
             val language = settings.settings.first().voiceLanguage
             try {
                 recorder.start { speech.stopListening() }
@@ -91,6 +92,7 @@ class VoiceSession @Inject constructor(
         chat.add(ChatMessage(role = "user", text = transcript))
         val config = settings.settings.first()
         sentenceBuffer = StringBuilder()
+        bargeInStarted = false
         responseJob = scope.launch {
             val response = StringBuilder()
             try {
@@ -110,6 +112,7 @@ class VoiceSession @Inject constructor(
                 val answer = response.toString().trim()
                 if (answer.isBlank()) error("Zyra received an empty response.")
                 chat.add(ChatMessage(role = "assistant", text = answer))
+                while (tts.isSpeaking()) delay(120)
                 mutableState.value = VoiceState.Idle
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
@@ -126,7 +129,15 @@ class VoiceSession @Inject constructor(
         var consumed = 0
         boundary.findAll(all).forEach { match ->
             val sentence = all.substring(consumed, match.range.last + 1).trim()
-            if (sentence.isNotBlank()) tts.speak(sentence, language, speed, pitch)
+            if (sentence.isNotBlank()) {
+                tts.speak(sentence, language, speed, pitch)
+                if (!bargeInStarted) {
+                    bargeInStarted = true
+                    speech.start(language, {}, { spoken ->
+                        if (spoken.trim().equals("stop", true) || spoken.trim().equals("stop speaking", true)) stopSpeaking()
+                    }, {})
+                }
+            }
             consumed = match.range.last + 1
         }
         if (consumed > 0) sentenceBuffer = StringBuilder(all.substring(consumed))
@@ -145,12 +156,14 @@ class VoiceSession @Inject constructor(
         mutableState.value = VoiceState.Idle
     }
 
-    fun stop() {
+    fun stop() { scope.launch { stopInternal() } }
+
+    private suspend fun stopInternal() {
         speech.cancel()
         tts.stop()
         responseJob?.cancel()
         amplitudeJob?.cancel()
-        scope.launch { recorder.stop() }
+        recorder.stop()
         mutableState.value = VoiceState.Idle
     }
 }
