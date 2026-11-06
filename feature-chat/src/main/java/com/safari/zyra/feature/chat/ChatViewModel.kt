@@ -16,6 +16,7 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -96,19 +97,30 @@ class ChatViewModel @Inject constructor(
         apiKeyStore.clear()
         mutableState.update { it.copy(hasApiKey = false, testResult = null) }
     }
-    fun updateTextModel(value: String) = viewModelScope.launch { settingsRepository.updateTextModelId(value) }
-    fun updateLiveModel(value: String) = viewModelScope.launch { settingsRepository.updateLiveModelId(value) }
-    fun updateSystemPrompt(value: String) = viewModelScope.launch { settingsRepository.updateSystemPrompt(value) }
+    fun saveSettings(textModelId: String, liveModelId: String, systemPrompt: String) {
+        viewModelScope.launch {
+            settingsRepository.updateTextModelId(textModelId)
+            settingsRepository.updateLiveModelId(liveModelId)
+            settingsRepository.updateSystemPrompt(systemPrompt)
+            val saved = settingsRepository.settings.first()
+            mutableState.update { it.copy(settings = saved) }
+        }
+    }
 
-    fun testConnection() {
+    fun testConnection(textModelId: String, liveModelId: String, systemPrompt: String) {
         if (mutableState.value.testingConnection) return
         viewModelScope.launch {
             mutableState.update { it.copy(testingConnection = true, testResult = null, error = null) }
             try {
+                settingsRepository.updateTextModelId(textModelId)
+                settingsRepository.updateLiveModelId(liveModelId)
+                settingsRepository.updateSystemPrompt(systemPrompt)
+                val saved = settingsRepository.settings.first()
+                mutableState.update { it.copy(settings = saved) }
                 val response = geminiClient.testConnection(
                     apiKeyStore.read(),
-                    mutableState.value.settings.textModelId,
-                    mutableState.value.settings.systemPrompt
+                    saved.textModelId,
+                    saved.systemPrompt
                 )
                 mutableState.update { it.copy(testResult = "Connected successfully: ${response.trim()}") }
             } catch (failure: Exception) {
