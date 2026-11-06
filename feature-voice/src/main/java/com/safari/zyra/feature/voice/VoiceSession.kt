@@ -131,12 +131,7 @@ class VoiceSession @Inject constructor(
             val sentence = all.substring(consumed, match.range.last + 1).trim()
             if (sentence.isNotBlank()) {
                 tts.speak(sentence, language, speed, pitch)
-                if (!bargeInStarted) {
-                    bargeInStarted = true
-                    speech.start(language, {}, { spoken ->
-                        if (spoken.trim().equals("stop", true) || spoken.trim().equals("stop speaking", true)) stopSpeaking()
-                    }, {})
-                }
+                armBargeIn(language)
             }
             consumed = match.range.last + 1
         }
@@ -144,8 +139,21 @@ class VoiceSession @Inject constructor(
     }
 
     private fun flushSentence(language: String, speed: Float, pitch: Float) {
-        sentenceBuffer.toString().trim().takeIf { it.isNotBlank() }?.let { tts.speak(it, language, speed, pitch) }
+        sentenceBuffer.toString().trim().takeIf {
+            if (it.isNotBlank()) {
+                tts.speak(it, language, speed, pitch)
+                armBargeIn(language)
+            }
+        }
         sentenceBuffer.clear()
+    }
+
+    private fun armBargeIn(language: String) {
+        if (bargeInStarted) return
+        bargeInStarted = true
+        speech.start(language, {}, { spoken ->
+            if (spoken.trim().equals("stop", true) || spoken.trim().equals("stop speaking", true)) stopSpeaking()
+        }, {})
     }
 
     fun stopSpeaking() {
