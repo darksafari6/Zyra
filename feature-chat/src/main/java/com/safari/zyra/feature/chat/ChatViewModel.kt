@@ -15,6 +15,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -77,6 +78,8 @@ class ChatViewModel @Inject constructor(
                 val finalText = response.toString().trim()
                 if (finalText.isBlank()) error("Zyra received an empty response. Please retry.")
                 chatRepository.add(ChatMessage(role = "assistant", text = finalText))
+            } catch (cancelled: CancellationException) {
+                throw cancelled
             } catch (failure: Exception) {
                 mutableState.update { it.copy(error = failure.message ?: "Something went wrong.") }
             } finally {
