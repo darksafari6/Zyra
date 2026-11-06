@@ -10,4 +10,5 @@ interface SettingsRepository {
     suspend fun updateTextModelId(value: String)
     suspend fun updateLiveModelId(value: String)
     suspend fun updateSystemPrompt(value: String)
+    suspend fun updateVoiceSettings(language: String, speed: Float, pitch: Float)
 }
