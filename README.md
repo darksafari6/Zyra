@@ -8,7 +8,7 @@ ZYRA is Safari's Android AI assistant. It is built in phases as a modular Androi
 - Android SDK 36
 
 ## Build
-Open the project in Android Studio and sync Gradle. Build the debug APK with:
+Open the project in Android Studio and sync Gradle. This repository does not yet include the Gradle wrapper, so use an installed Gradle 8.13 distribution. Build the debug APK with:
 
 ```bash
 gradle :app:assembleDebug
