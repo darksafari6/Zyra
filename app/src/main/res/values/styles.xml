@@ -1,0 +1,1 @@
+<?xml version="1.0" encoding="utf-8"?><resources><style name="Theme.Zyra.Starting" parent="Theme.SplashScreen"><item name="windowSplashScreenBackground">@color/zyra_splash_background</item><item name="windowSplashScreenAnimatedIcon">@drawable/ic_zyra_foreground</item><item name="postSplashScreenTheme">@android:style/Theme.Material.NoActionBar</item></style></resources>
