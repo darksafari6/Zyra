@@ -9,7 +9,7 @@ import io.ktor.client.request.setBody
 import io.ktor.client.statement.bodyAsChannel
 import io.ktor.http.ContentType
 import io.ktor.http.HttpStatusCode
-import io.ktor.utils.io.readUTF8Line
+import io.ktor.utils.io.readLine
 import java.io.IOException
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
@@ -58,7 +58,7 @@ class GeminiRestClient @Inject constructor(
             }
             if (response.status != HttpStatusCode.OK) {
                 val errorChannel = response.bodyAsChannel()
-                val errorBody = buildString { while (true) append(errorChannel.readUTF8Line() ?: break) }
+                val errorBody = buildString { while (true) append(errorChannel.readLine() ?: break) }
                 throw mapHttpFailure(response.status.value, errorBody)
             }
             val channel = response.bodyAsChannel()
