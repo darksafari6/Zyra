@@ -23,6 +23,7 @@ import kotlinx.coroutines.delay
 fun JellyOrb(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    onClick: (() -> Unit)? = null,
     content: @Composable BoxScope.() -> Unit
 ) {
     var pressed by remember { mutableStateOf(false) }
@@ -40,7 +41,7 @@ fun JellyOrb(
     Box(
         modifier = modifier.graphicsLayer { scaleX = sx; scaleY = sy }
             .pointerInput(enabled) {
-                if (enabled) detectTapGestures(onPress = {
+                if (enabled) detectTapGestures(onTap = { onClick?.invoke() }, onPress = {
                     pressed = true
                     try { tryAwaitRelease() } finally { pressed = false }
                 })
