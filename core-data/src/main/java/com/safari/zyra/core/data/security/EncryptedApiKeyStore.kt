@@ -6,6 +6,8 @@ import androidx.security.crypto.MasterKey
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 @Suppress("DEPRECATION")
 @Singleton
@@ -19,13 +21,20 @@ class EncryptedApiKeyStore @Inject constructor(
         EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
         EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
     )
+    private val mutableHasKey = MutableStateFlow(preferences.getString(KEY_GEMINI, "").orEmpty().isNotBlank())
+    override val hasKey = mutableHasKey.asStateFlow()
 
     override fun read(): String = preferences.getString(KEY_GEMINI, "").orEmpty()
     override fun write(value: String) {
-        preferences.edit().putString(KEY_GEMINI, value.trim()).apply()
+        val clean = value.trim()
+        if (clean.isNotBlank()) {
+            preferences.edit().putString(KEY_GEMINI, clean).apply()
+            mutableHasKey.value = true
+        }
     }
     override fun clear() {
         preferences.edit().remove(KEY_GEMINI).apply()
+        mutableHasKey.value = false
     }
 
     private companion object { const val KEY_GEMINI = "gemini_api_key" }
