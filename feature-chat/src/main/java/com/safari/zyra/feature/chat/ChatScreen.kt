@@ -73,10 +73,15 @@ fun ChatScreen(
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) {
         selectedImage = it
     }
-    LaunchedEffect(state.messages.size, state.streamingText, state.isStreaming) {
-        val extra = if (state.isStreaming && state.streamingText.isNotEmpty()) 1 else 0
-        val target = state.messages.size + extra - 1
-        if (target >= 0) listState.animateScrollToItem(target)
+    LaunchedEffect(state.messages.size, state.isStreaming) {
+        val target = state.messages.size + if (state.isStreaming) 1 else 0
+        if (target > 0) listState.animateScrollToItem(target - 1)
+    }
+    LaunchedEffect(state.streamingText) {
+        if (state.streamingText.isNotEmpty()) {
+            val target = state.messages.size
+            if (target >= 0) listState.scrollToItem(target)
+        }
     }
 
     Column(
@@ -192,7 +197,7 @@ fun ChatScreen(
             Spacer(Modifier.width(4.dp))
             JellyOrb(
                 modifier = Modifier.size(42.dp),
-                enabled = draft.isNotBlank() || selectedImage != null,
+                enabled = !state.isStreaming && (draft.isNotBlank() || selectedImage != null),
                 onClick = {
                     viewModel.sendMessage(draft, selectedImage)
                     draft = ""
@@ -202,7 +207,7 @@ fun ChatScreen(
                 Surface(
                     modifier = Modifier.size(39.dp),
                     shape = CircleShape,
-                    color = Color(0xFF00E5FF)
+                    color = if (!state.isStreaming && (draft.isNotBlank() || selectedImage != null)) Color(0xFF00E5FF) else Color(0xFF33435B)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(painterResource(R.drawable.ic_zyra_send), contentDescription = "Send", modifier = Modifier.size(18.dp))
