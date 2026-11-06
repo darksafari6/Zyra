@@ -62,9 +62,12 @@ class SpeechToText @Inject constructor(@ApplicationContext private val context: 
         override fun onError(error: Int) { failure?.invoke(errorMessage(error)) }
     }
 
-    fun stopListening() { mainHandler.post { runCatching { recognizer?.stopListening() } } }
-    fun cancel() { mainHandler.post { runCatching { recognizer?.cancel() } } }
-    fun destroy() { mainHandler.post { runCatching { recognizer?.destroy() }; recognizer = null } }
+    private fun onMain(action: () -> Unit) {
+        if (Looper.myLooper() == Looper.getMainLooper()) action() else mainHandler.post(action)
+    }
+    fun stopListening() { onMain { runCatching { recognizer?.stopListening() } } }
+    fun cancel() { onMain { runCatching { recognizer?.cancel() } } }
+    fun destroy() { onMain { runCatching { recognizer?.destroy() }; recognizer = null } }
 
     private fun errorMessage(code: Int) = when (code) {
         SpeechRecognizer.ERROR_AUDIO -> "Microphone audio error."
