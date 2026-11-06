@@ -100,15 +100,13 @@ fun SettingsScreen(
         )
         Button(
             onClick = {
-                viewModel.updateTextModel(textModel)
-                viewModel.updateLiveModel(liveModel)
-                viewModel.updateSystemPrompt(prompt)
+                viewModel.saveSettings(textModel, liveModel, prompt)
             },
             modifier = Modifier.fillMaxWidth()
         ) { Text("Save settings") }
 
         Button(
-            onClick = viewModel::testConnection,
+            onClick = { viewModel.testConnection(textModel, liveModel, prompt) },
             modifier = Modifier.fillMaxWidth(),
             enabled = !state.testingConnection && state.hasApiKey && textModel.isNotBlank()
         ) {
