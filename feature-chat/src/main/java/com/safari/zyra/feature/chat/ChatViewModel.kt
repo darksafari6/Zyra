@@ -61,7 +61,7 @@ class ChatViewModel @Inject constructor(
                     image = GeminiImage(target.readBytes(), mime)
                 }
                 chatRepository.add(ChatMessage(role = "user", text = prompt, imagePath = storedImagePath))
-                val history = chatRepository.recentForPrompt(20).dropLast(1).map { GeminiTurn(it.role, it.text) }
+                val history = chatRepository.recentForPrompt(21).dropLast(1).map { GeminiTurn(it.role, it.text) }
                 val response = StringBuilder()
                 geminiClient.streamReply(
                     apiKey = apiKeyStore.read(),
