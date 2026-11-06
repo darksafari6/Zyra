@@ -12,6 +12,7 @@ datastore = "1.1.7"
 security-crypto = "1.1.0-alpha06"
 coroutines = "1.10.2"
 ktor = "3.3.1"
+coil = "3.3.0"
 core-splashscreen = "1.2.0"
 
 [libraries]
@@ -37,6 +38,7 @@ hilt-compiler = { module = "com.google.dagger:hilt-compiler", version.ref = "hil
 hilt-navigation-compose = { module = "androidx.hilt:hilt-navigation-compose", version = "1.2.0" }
 ktor-client-core = { module = "io.ktor:ktor-client-core", version.ref = "ktor" }
 ktor-client-okhttp = { module = "io.ktor:ktor-client-okhttp", version.ref = "ktor" }
+coil-compose = { module = "io.coil-kt.coil3:coil-compose", version.ref = "coil" }
 
 [plugins]
 android-application = { id = "com.android.application", version.ref = "agp" }
