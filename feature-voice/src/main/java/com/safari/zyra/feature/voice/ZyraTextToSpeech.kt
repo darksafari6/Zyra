@@ -52,7 +52,7 @@ class ZyraTextToSpeech @Inject constructor(@ApplicationContext context: Context)
         tts.speak(request.text, TextToSpeech.QUEUE_ADD, null, "zyra-" + System.nanoTime())
     }
 
-    fun isSpeaking(): Boolean = runCatching { engine?.isSpeaking == true }.getOrDefault(false)
+    fun isSpeaking(): Boolean = synchronized(pending) { pending.isNotEmpty() } || runCatching { engine?.isSpeaking == true }.getOrDefault(false)
     fun stop() {
         synchronized(pending) { pending.clear() }
         runCatching { engine?.stop() }
