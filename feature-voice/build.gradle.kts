@@ -1,6 +1,7 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.ksp)
 }
 android {
     namespace = "com.safari.zyra.feature.voice"
@@ -12,4 +13,10 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
 }
-dependencies { implementation(project(":core-ui")) }
+dependencies {
+    implementation(project(":core-data"))
+    implementation(project(":core-network"))
+    implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
+}
