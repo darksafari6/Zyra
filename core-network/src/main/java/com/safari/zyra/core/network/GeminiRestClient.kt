@@ -63,7 +63,7 @@ class GeminiRestClient @Inject constructor(
             }
             val channel = response.bodyAsChannel()
             while (true) {
-                val line = channel.readUTF8Line() ?: break
+                val line = channel.readLine() ?: break
                 if (!line.startsWith("data:")) continue
                 val payload = line.removePrefix("data:").trim()
                 if (payload.isBlank() || payload == "[DONE]") continue
