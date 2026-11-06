@@ -107,7 +107,7 @@ class GeminiRestClient @Inject constructor(
 
     private fun endpoint(modelId: String): String {
         val clean = modelId.trim().removePrefix("models/")
-        require(clean.isNotBlank() && '/' !in clean && '?' !in clean && '#' !in clean) {
+        require(Regex("^[A-Za-z0-9._-]+$").matches(clean)) {
             "Model ID must be a model name such as the IDs listed in Google's Gemini API model catalog."
         }
         return "https://generativelanguage.googleapis.com/v1beta/models/$clean:streamGenerateContent?alt=sse"
