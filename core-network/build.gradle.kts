@@ -13,8 +13,8 @@ android {
     kotlinOptions { jvmTarget = "17" }
 }
 dependencies {
-    implementation(libs.ktor.client.core)
-    implementation(libs.ktor.client.okhttp)
+    api(libs.ktor.client.core)
+    api(libs.ktor.client.okhttp)
     api(libs.kotlinx.coroutines.android)
     implementation(libs.hilt.android)
 }
