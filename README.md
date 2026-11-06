@@ -1,6 +1,6 @@
 # ZYRA — Android AI Assistant
 
-ZYRA is Safari's Android AI assistant. The project is being built in verified phases, starting with a modular Android scaffold.
+ZYRA is Safari's Android AI assistant. It is built in phases as a modular Android application.
 
 ## Requirements
 - Android 9 (API 28) or newer
@@ -8,10 +8,28 @@ ZYRA is Safari's Android AI assistant. The project is being built in verified ph
 - Android SDK 36
 
 ## Build
-Open the project in Android Studio and sync Gradle. Then run the `app` configuration on a device or emulator.
+Open the project in Android Studio and sync Gradle. Build the debug APK with:
 
-## Project status
-- Piece 1: project scaffold
-- Later phases: brand, chat, Gemini, voice, wake word, device tools, accessibility, polish and release.
+```bash
+./gradlew :app:assembleDebug
+```
 
-Secrets such as API keys and signing credentials must never be committed.
+## Current implementation
+- Piece 1: modular Android scaffold, Kotlin, Compose, Hilt and Gradle version catalog.
+- Piece 2: ZYRA vector brand, adaptive launcher icon, Canvas logo, jelly orb and animated splash.
+- Piece 3: Room-backed message history, encrypted API key storage, DataStore model/personality settings, Gemini REST SSE text/image requests, chat and settings UI, contact launchers.
+
+## Gemini setup
+1. Create/manage an API key in [Google AI Studio](https://aistudio.google.com/app/apikey).
+2. In ZYRA Settings, save the key, enter a supported **text model ID**, save settings, then use **Test Gemini connection**.
+3. Check Google's live [Gemini API model catalog](https://ai.google.dev/gemini-api/docs/models) before choosing a model. Verify the exact endpoint ID and that it supports `generateContent`/streaming and image input if you plan to attach images. Do not rely on old tutorials or retired model IDs.
+4. The Live model ID field is reserved for the later Live API phase; it is not used by the current text chat.
+
+The API key is not compiled into the app. It is stored locally with Android Keystore-backed Jetpack Security Crypto `EncryptedSharedPreferences`, as requested for this phase. Note: AndroidX has deprecated that library and announced no further releases; this is a compatibility choice for this requested implementation, not a recommended long-term storage API. Keep the encrypted preferences excluded from backups.
+
+## Notes
+- Chat messages and image copies are stored in the app's private Room/files storage and survive normal app restarts.
+- Clearing chat history deletes Room messages and the app's copied chat images.
+- The app does not ship with a model ID or API key hardcoded.
+- Voice input is intentionally disabled until the voice phase.
+- Never commit API keys or signing credentials.
