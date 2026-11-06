@@ -39,7 +39,7 @@ fun JellyOrb(
     val sx by animateFloatAsState(targetX, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "orbScaleX")
     val sy by animateFloatAsState(targetY, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "orbScaleY")
     Box(
-        modifier = modifier.graphicsLayer { scaleX = sx; scaleY = sy }
+        modifier = modifier.graphicsLayer { scaleX = sx; scaleY = sy; translationY = if (idle && !pressed) -1.5f else 0f }
             .pointerInput(enabled) {
                 if (enabled) detectTapGestures(onTap = { onClick?.invoke() }, onPress = {
                     pressed = true
