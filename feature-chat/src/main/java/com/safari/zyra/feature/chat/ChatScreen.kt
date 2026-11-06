@@ -257,12 +257,24 @@ fun ChatScreen(
                     }
                 }
             ) {
-                Icon(
-                    painterResource(R.drawable.ic_zyra_mic),
-                    contentDescription = if (listening) "Stop listening" else "Start voice chat",
-                    modifier = Modifier.size(20.dp),
-                    tint = if (listening) Color(0xFF00E5FF) else Color(0xFFEAF0FF)
-                )
+                Surface(
+                    modifier = Modifier.size(39.dp).border(
+                        1.dp,
+                        if (listening) Color(0xFF00E5FF) else Color(0x6645CBE8),
+                        CircleShape
+                    ),
+                    shape = CircleShape,
+                    color = if (listening) Color(0xFF123849) else Color(0xFF10182B)
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            painterResource(R.drawable.ic_zyra_mic),
+                            contentDescription = if (listening) "Stop listening" else "Start voice chat",
+                            modifier = Modifier.size(20.dp),
+                            tint = if (listening) Color(0xFF00E5FF) else Color(0xFFEAF0FF)
+                        )
+                    }
+                }
             }
             Spacer(Modifier.width(4.dp))
             JellyOrb(
