@@ -11,6 +11,8 @@ import com.safari.zyra.core.data.security.ApiKeyStore
 import com.safari.zyra.core.network.GeminiClient
 import com.safari.zyra.core.network.GeminiImage
 import com.safari.zyra.core.network.GeminiTurn
+import com.safari.zyra.feature.voice.VoiceSession
+import com.safari.zyra.feature.voice.VoiceState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import java.io.File
@@ -29,21 +31,24 @@ class ChatViewModel @Inject constructor(
     private val chatRepository: ChatRepository,
     private val settingsRepository: SettingsRepository,
     private val apiKeyStore: ApiKeyStore,
-    private val geminiClient: GeminiClient
+    private val geminiClient: GeminiClient,
+    private val voiceSession: VoiceSession
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(ChatUiState())
     val state: StateFlow<ChatUiState> = mutableState.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            chatRepository.messages.collect { messages -> mutableState.update { it.copy(messages = messages) } }
-        }
-        viewModelScope.launch {
-            settingsRepository.settings.collect { settings -> mutableState.update { it.copy(settings = settings) } }
-        }
-        viewModelScope.launch {
-            apiKeyStore.hasKey.collect { hasKey -> mutableState.update { it.copy(hasApiKey = hasKey) } }
-        }
+        viewModelScope.launch { chatRepository.messages.collect { messages -> mutableState.update { it.copy(messages = messages) } } }
+        viewModelScope.launch { settingsRepository.settings.collect { settings -> mutableState.update { it.copy(settings = settings) } } }
+        viewModelScope.launch { apiKeyStore.hasKey.collect { hasKey -> mutableState.update { it.copy(hasApiKey = hasKey) } } }
+        viewModelScope.launch { voiceSession.state.collect { voice -> mutableState.update { it.copy(voiceState = voice) } } }
+    }
+
+    fun startVoice() = voiceSession.startListening()
+    fun stopVoice() = voiceSession.stop()
+    fun stopSpeaking() = voiceSession.stopSpeaking()
+    fun voicePermissionDenied() {
+        mutableState.update { it.copy(voiceState = VoiceState.Error("Microphone access was denied. Enable it in Android Settings to use voice chat.")) }
     }
 
     fun sendMessage(text: String, imageUri: Uri? = null) {
@@ -61,14 +66,8 @@ class ChatViewModel @Inject constructor(
                     context.contentResolver.openInputStream(imageUri)?.use { input ->
                         target.outputStream().use { output -> input.copyTo(output) }
                     } ?: error("Could not read the selected image.")
-                    if (!mime.startsWith("image/")) {
-                        target.delete()
-                        error("The selected file is not a supported image.")
-                    }
-                    if (target.length() > 14L * 1024L * 1024L) {
-                        target.delete()
-                        error("Image is too large. Choose an image under 14 MB.")
-                    }
+                    if (!mime.startsWith("image/")) { target.delete(); error("The selected file is not a supported image.") }
+                    if (target.length() > 14L * 1024L * 1024L) { target.delete(); error("Image is too large. Choose an image under 14 MB.") }
                     storedImagePath = target.absolutePath
                     image = GeminiImage(target.readBytes(), mime)
                 }
@@ -93,9 +92,7 @@ class ChatViewModel @Inject constructor(
                 throw cancelled
             } catch (failure: Exception) {
                 mutableState.update { it.copy(error = failure.message ?: "Something went wrong.") }
-            } finally {
-                mutableState.update { it.copy(isStreaming = false, streamingText = "") }
-            }
+            } finally { mutableState.update { it.copy(isStreaming = false, streamingText = "") } }
         }
     }
 
@@ -107,13 +104,13 @@ class ChatViewModel @Inject constructor(
         apiKeyStore.clear()
         mutableState.update { it.copy(hasApiKey = false, testResult = null) }
     }
-    fun saveSettings(textModelId: String, liveModelId: String, systemPrompt: String) {
+    fun saveSettings(textModelId: String, liveModelId: String, systemPrompt: String, voiceLanguage: String, voiceSpeed: Float, voicePitch: Float) {
         viewModelScope.launch {
             settingsRepository.updateTextModelId(textModelId)
             settingsRepository.updateLiveModelId(liveModelId)
             settingsRepository.updateSystemPrompt(systemPrompt)
-            val saved = settingsRepository.settings.first()
-            mutableState.update { it.copy(settings = saved) }
+            settingsRepository.updateVoiceSettings(voiceLanguage, voiceSpeed, voicePitch)
+            mutableState.update { it.copy(settings = settingsRepository.settings.first()) }
         }
     }
 
@@ -127,25 +124,21 @@ class ChatViewModel @Inject constructor(
                 settingsRepository.updateSystemPrompt(systemPrompt)
                 val saved = settingsRepository.settings.first()
                 mutableState.update { it.copy(settings = saved) }
-                val response = geminiClient.testConnection(
-                    apiKeyStore.read(),
-                    saved.textModelId,
-                    saved.systemPrompt
-                )
+                val response = geminiClient.testConnection(apiKeyStore.read(), saved.textModelId, saved.systemPrompt)
                 mutableState.update { it.copy(testResult = "Connected successfully: ${response.trim()}") }
             } catch (failure: Exception) {
                 mutableState.update { it.copy(testResult = failure.message ?: "Connection test failed.") }
-            } finally {
-                mutableState.update { it.copy(testingConnection = false) }
-            }
+            } finally { mutableState.update { it.copy(testingConnection = false) } }
         }
     }
 
     fun clearHistory() {
-        viewModelScope.launch {
-            chatRepository.clear()
-            File(context.filesDir, "zyra_images").deleteRecursively()
-        }
+        viewModelScope.launch { chatRepository.clear(); File(context.filesDir, "zyra_images").deleteRecursively() }
     }
     fun dismissError() = mutableState.update { it.copy(error = null) }
+
+    override fun onCleared() {
+        voiceSession.stop()
+        super.onCleared()
+    }
 }
