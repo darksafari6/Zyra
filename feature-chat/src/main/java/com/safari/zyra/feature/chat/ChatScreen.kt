@@ -1,10 +1,19 @@
 package com.safari.zyra.feature.chat
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.content.Intent
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.core.content.ContextCompat
+import com.safari.zyra.feature.voice.VoiceState
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -71,6 +80,19 @@ fun ChatScreen(
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+    val haptic = LocalHapticFeedback.current
+    var showMicRationale by remember { mutableStateOf(false) }
+    val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) {
+            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+            viewModel.startVoice()
+        } else viewModel.voicePermissionDenied()
+    }
+    val listening = state.voiceState is VoiceState.Listening
+    LaunchedEffect(listening) {
+        if (listening) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+    }
     var draft by remember { mutableStateOf("") }
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
     val listState = rememberLazyListState()
@@ -110,7 +132,13 @@ fun ChatScreen(
                 modifier = Modifier.border(1.dp, if (state.hasApiKey && state.settings.textModelId.isNotBlank()) Color(0x6648E0B0) else Color(0x66FFB74D), CircleShape)
             ) {
                 Text(
-                    if (state.hasApiKey && state.settings.textModelId.isNotBlank()) "READY" else "SETUP",
+                    when (state.voiceState) {
+                        is VoiceState.Listening -> "LISTENING"
+                        is VoiceState.Thinking -> "THINKING"
+                        is VoiceState.Speaking -> "SPEAKING"
+                        is VoiceState.Error -> "VOICE ERROR"
+                        VoiceState.Idle -> if (state.hasApiKey && state.settings.textModelId.isNotBlank()) "READY" else "SETUP"
+                    },
                     modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
                     color = if (state.hasApiKey && state.settings.textModelId.isNotBlank()) Color(0xFF72E7BE) else Color(0xFFFFC56D),
                     fontSize = 9.sp,
@@ -151,6 +179,21 @@ fun ChatScreen(
                     if (state.streamingText.isBlank()) TypingIndicator()
                     else MessageBubble(false, state.streamingText, null, streaming = true)
                 }
+            }
+            when (val voice = state.voiceState) {
+                is VoiceState.Listening -> item(key = "voice-live-transcript") {
+                    VoiceStatusBubble("Listening", voice.transcript.ifBlank { "I'm listening…" })
+                }
+                is VoiceState.Thinking -> item(key = "voice-thinking") {
+                    VoiceStatusBubble("Thinking", voice.transcript)
+                }
+                is VoiceState.Speaking -> item(key = "voice-speaking") {
+                    VoiceStatusBubble("Speaking", voice.response.ifBlank { "Preparing a reply…" })
+                }
+                is VoiceState.Error -> item(key = "voice-error") {
+                    VoiceStatusBubble("Voice", voice.message)
+                }
+                VoiceState.Idle -> Unit
             }
             state.error?.let { message ->
                 item(key = "error") {
@@ -195,8 +238,32 @@ fun ChatScreen(
                     maxLines = 5
                 )
             }
-            JellyOrb(modifier = Modifier.size(39.dp), enabled = false) {
-                Icon(painterResource(R.drawable.ic_zyra_mic), contentDescription = "Voice input coming later", modifier = Modifier.size(20.dp).alpha(.35f))
+            val amplitude = (state.voiceState as? VoiceState.Listening)?.amplitude ?: 0f
+            JellyOrb(
+                modifier = Modifier.size(42.dp).graphicsLayer {
+                    scaleX = 1f + amplitude * 0.18f
+                    scaleY = 1f - amplitude * 0.10f
+                },
+                enabled = !state.isStreaming,
+                onClick = {
+                    when (state.voiceState) {
+                        is VoiceState.Speaking -> viewModel.stopSpeaking()
+                        is VoiceState.Listening, is VoiceState.Thinking -> viewModel.stopVoice()
+                        else -> {
+                            if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                                viewModel.startVoice()
+                            } else showMicRationale = true
+                        }
+                    }
+                }
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_zyra_mic),
+                    contentDescription = if (listening) "Stop listening" else "Start voice chat",
+                    modifier = Modifier.size(20.dp),
+                    tint = if (listening) Color(0xFF00E5FF) else Color(0xFFEAF0FF)
+                )
             }
             Spacer(Modifier.width(4.dp))
             JellyOrb(
@@ -222,6 +289,40 @@ fun ChatScreen(
 
         ContactDock()
         Spacer(Modifier.height(5.dp))
+    }
+
+    if (showMicRationale) {
+        AlertDialog(
+            onDismissRequest = { showMicRationale = false },
+            title = { Text("Allow microphone access?") },
+            text = { Text("ZYRA uses your microphone only when you tap the voice orb. Audio is processed for live speech recognition; the app does not keep microphone recordings. You can revoke access anytime in Android Settings.") },
+            confirmButton = {
+                Button(onClick = {
+                    showMicRationale = false
+                    micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                }) { Text("Continue") }
+            },
+            dismissButton = {
+                androidx.compose.material3.TextButton(onClick = { showMicRationale = false }) { Text("Not now") }
+            },
+            containerColor = Color(0xFF101522),
+            titleContentColor = Color(0xFFEAF0FF),
+            textContentColor = Color(0xFF9BA7C2)
+        )
+    }
+}
+
+@Composable
+private fun VoiceStatusBubble(title: String, body: String) {
+    Surface(
+        color = Color(0xCC101522),
+        shape = RoundedCornerShape(16.dp),
+        modifier = Modifier.fillMaxWidth(.92f).border(1.dp, Color(0x5535BFD9), RoundedCornerShape(16.dp))
+    ) {
+        Column(Modifier.padding(horizontal = 13.dp, vertical = 10.dp)) {
+            Text(title.uppercase(), color = Color(0xFF00E5FF), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text(body, color = Color(0xFFEAF0FF), fontSize = 13.sp, lineHeight = 19.sp)
+        }
     }
 }
 
