@@ -92,6 +92,7 @@ fun ChatScreen(
     val listening = state.voiceState is VoiceState.Listening
     LaunchedEffect(listening) {
         if (listening) haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+        else if (state.voiceState is VoiceState.Thinking) haptic.performHapticFeedback(HapticFeedbackType.TextHandleMove)
     }
     var draft by remember { mutableStateOf("") }
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
