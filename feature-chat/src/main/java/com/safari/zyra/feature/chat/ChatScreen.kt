@@ -251,7 +251,6 @@ fun ChatScreen(
                         is VoiceState.Listening, is VoiceState.Thinking -> viewModel.stopVoice()
                         else -> {
                             if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
-                                haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                                 viewModel.startVoice()
                             } else showMicRationale = true
                         }
