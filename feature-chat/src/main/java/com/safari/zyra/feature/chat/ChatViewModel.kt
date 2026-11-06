@@ -41,7 +41,9 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             settingsRepository.settings.collect { settings -> mutableState.update { it.copy(settings = settings) } }
         }
-        mutableState.update { it.copy(hasApiKey = apiKeyStore.read().isNotBlank()) }
+        viewModelScope.launch {
+            apiKeyStore.hasKey.collect { hasKey -> mutableState.update { it.copy(hasApiKey = hasKey) } }
+        }
     }
 
     fun sendMessage(text: String, imageUri: Uri? = null) {
@@ -91,7 +93,7 @@ class ChatViewModel @Inject constructor(
 
     fun saveApiKey(value: String) {
         if (value.isNotBlank()) apiKeyStore.write(value)
-        mutableState.update { it.copy(hasApiKey = apiKeyStore.read().isNotBlank(), testResult = null) }
+        mutableState.update { it.copy(hasApiKey = apiKeyStore.hasKey.value, testResult = null) }
     }
     fun clearApiKey() {
         apiKeyStore.clear()
