@@ -24,6 +24,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -47,6 +48,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
@@ -60,6 +62,8 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.safari.zyra.core.ui.brand.JellyOrb
 import com.safari.zyra.core.ui.brand.ZyraLogo
+import coil3.compose.AsyncImage
+import java.io.File
 
 @Composable
 fun ChatScreen(
@@ -239,7 +243,7 @@ private fun MessageBubble(isUser: Boolean, text: String, imagePath: String?, str
                 .border(1.dp, if (isUser) Color(0x5544BDE0) else Color(0x334A5B7D), RoundedCornerShape(18.dp))
         ) {
             Column(Modifier.padding(horizontal = 14.dp, vertical = 11.dp)) {
-                if (imagePath != null) Text("▧  Image attached", color = Color(0xFF00E5FF), fontSize = 11.sp, modifier = Modifier.padding(bottom = 5.dp))
+                if (imagePath != null) AsyncImage(model = File(imagePath), contentDescription = "Attached image", modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp).clip(RoundedCornerShape(12.dp)).padding(bottom = 7.dp))
                 Text(
                     markdownText(text),
                     color = Color(0xFFEAF0FF),
