@@ -70,6 +70,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -95,6 +96,7 @@ import java.io.File
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
+import kotlinx.coroutines.launch
 
 @Composable
 fun ChatScreen(
@@ -121,6 +123,7 @@ fun ChatScreen(
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
     var showAttachMenu by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
+    val coroutineScope = rememberCoroutineScope()
     val isAtBottom by remember { derivedStateOf { listState.layoutInfo.totalItemsCount == 0 || listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index == listState.layoutInfo.totalItemsCount - 1 } }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { selectedImage = it }
     val cameraPreview = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
@@ -240,7 +243,7 @@ fun ChatScreen(
         }
 
         if (!isAtBottom) {
-            TextButton(onClick = { kotlinx.coroutines.MainScope().launch { val last = listState.layoutInfo.totalItemsCount - 1; if (last >= 0) listState.animateScrollToItem(last) } }, modifier = Modifier.align(Alignment.End)) { Text("↓ Latest message", color = ZyraColors.cyan) }
+            TextButton(onClick = { coroutineScope.launch { val last = listState.layoutInfo.totalItemsCount - 1; if (last >= 0) listState.animateScrollToItem(last) } }, modifier = Modifier.align(Alignment.End)) { Text("↓ Latest message", color = ZyraColors.cyan) }
         }
 
         if (selectedImage != null) {
