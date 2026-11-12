@@ -12,6 +12,7 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.utils.io.readUTF8Line
 import java.io.IOException
 import javax.inject.Inject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
@@ -82,6 +83,8 @@ class GeminiRestClient @Inject constructor(
                 }.getOrDefault("")
                 if (chunk.isNotEmpty()) emit(chunk)
             }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
         } catch (failure: GeminiFailure) {
             throw failure
         } catch (failure: IOException) {
