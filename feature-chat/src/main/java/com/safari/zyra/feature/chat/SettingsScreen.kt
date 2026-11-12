@@ -19,10 +19,13 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.OutlinedTextFieldDefaults
 import androidx.compose.material3.Surface
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -33,6 +36,7 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import androidx.hilt.navigation.compose.hiltViewModel
 
 @Composable
@@ -49,6 +53,8 @@ fun SettingsScreen(
     var voiceSpeed by remember(state.settings.voiceSpeed) { mutableStateOf(state.settings.voiceSpeed) }
     var voicePitch by remember(state.settings.voicePitch) { mutableStateOf(state.settings.voicePitch) }
     var confirmClear by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
 
     Column(
         Modifier.fillMaxSize().safeDrawingPadding().imePadding().background(Color(0xFF05060A)).verticalScroll(rememberScrollState()).padding(20.dp),
@@ -124,7 +130,11 @@ fun SettingsScreen(
                 viewModel.saveSettings(textModel, liveModel, prompt, voiceLanguage, voiceSpeed, voicePitch)
             },
             modifier = Modifier.fillMaxWidth()
-        ) { Text("Save settings") }
+        ) {
+            viewModel.saveSettings(textModel, liveModel, prompt, voiceLanguage, voiceSpeed, voicePitch)
+            scope.launch { snackbarHostState.showSnackbar("Settings saved successfully.") }
+        }
+        SnackbarHost(hostState = snackbarHostState)
 
         Button(
             onClick = { viewModel.testConnection(textModel, liveModel, prompt) },
