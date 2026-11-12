@@ -51,6 +51,8 @@ import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.DropdownMenu
@@ -389,6 +391,9 @@ private fun VoiceStatusBubble(title: String, body: String) {
 @Composable
 private fun MessageBubble(isUser: Boolean, text: String, imagePath: String?, streaming: Boolean = false, timestamp: Long? = null, onDelete: (() -> Unit)? = null, onRegenerate: (() -> Unit)? = null) {
     val context = LocalContext.current
+    var showImagePreview by remember { mutableStateOf(false) }
+    var imageScale by remember { mutableStateOf(1f) }
+    val imageTransform = rememberTransformableState { zoom, _, _ -> imageScale = (imageScale * zoom).coerceIn(1f, 5f) }
     Column(
         Modifier.fillMaxWidth(),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
@@ -404,7 +409,7 @@ private fun MessageBubble(isUser: Boolean, text: String, imagePath: String?, str
                 .border(1.dp, if (isUser) ZyraColors.cyan.copy(alpha = .32f) else ZyraColors.border, RoundedCornerShape(18.dp))
         ) {
             Column(Modifier.padding(horizontal = 14.dp, vertical = 11.dp)) {
-                if (imagePath != null) AsyncImage(model = File(imagePath), contentDescription = "Attached image", modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp).clip(RoundedCornerShape(12.dp)).clickable { /* image viewer is opened from the image preview action */ }.padding(bottom = 7.dp))
+                if (imagePath != null) AsyncImage(model = File(imagePath), contentDescription = "Open attached image", modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp).clip(RoundedCornerShape(12.dp)).clickable { showImagePreview = true }.padding(bottom = 7.dp))
                 SelectionContainer { ZyraMarkdown(text) }
                 if (streaming) Text("●", color = ZyraColors.cyan, fontSize = MaterialTheme.typography.labelSmall.fontSize)
             }
@@ -416,6 +421,14 @@ private fun MessageBubble(isUser: Boolean, text: String, imagePath: String?, str
                 TextButton(onClick = { val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text); context.startActivity(Intent.createChooser(send, "Share message")) }) { Text(stringResource(R.string.chat_share)) }
                 onRegenerate?.let { TextButton(onClick = it) { Text(stringResource(R.string.chat_regenerate)) } }
                 onDelete?.let { TextButton(onClick = it) { Text(stringResource(R.string.chat_delete), color = ZyraColors.error) } }
+            }
+        }
+    }
+    if (showImagePreview && imagePath != null) {
+        Dialog(onDismissRequest = { showImagePreview = false; imageScale = 1f }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            Box(Modifier.fillMaxSize().background(ZyraColors.background), contentAlignment = Alignment.Center) {
+                AsyncImage(model = File(imagePath), contentDescription = "Zoomable attached image", modifier = Modifier.fillMaxSize().transformable(imageTransform).graphicsLayer { scaleX = imageScale; scaleY = imageScale })
+                TextButton(onClick = { showImagePreview = false; imageScale = 1f }, modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) { Text("Close", color = ZyraColors.text) }
             }
         }
     }
