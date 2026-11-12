@@ -22,6 +22,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -33,6 +34,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.safari.zyra.core.network.GeminiModelCapability
+import com.safari.zyra.feature.voice.InstalledVoiceLocaleCatalog
+import java.util.Locale
 
 @Composable
 fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hiltViewModel()) {
@@ -42,7 +45,12 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
     var apiKey by remember { mutableStateOf("") }
     var language by remember { mutableStateOf("en-US") }
     var search by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
+    var languageExpanded by remember { mutableStateOf(false) }
+    val installedLocales = remember { mutableStateOf(listOf(Locale.getDefault())) }
+    DisposableEffect(context) {
+        val catalog = InstalledVoiceLocaleCatalog(context) { installedLocales.value = it }
+        onDispose { catalog.close() }
+    }
     var microphoneGranted by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
     }
@@ -93,10 +101,17 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
             }
             4 -> {
                 Text("Choose the language Zyra should use for speech recognition and spoken replies.")
-                val languages = listOf("English (United States)" to "en-US", "Urdu (Pakistan)" to "ur-PK", "English (United Kingdom)" to "en-GB", "Hindi (India)" to "hi-IN")
-                languages.forEach { (label, tag) ->
-                    OutlinedButton(onClick = { language = tag }, modifier = Modifier.fillMaxWidth()) {
-                        Text(if (language == tag) "✓ $label" else label)
+                val languages = installedLocales.value
+                OutlinedButton(onClick = { languageExpanded = true }, modifier = Modifier.fillMaxWidth()) {
+                    val selected = languages.firstOrNull { it.toLanguageTag() == language }
+                    Text(selected?.displayName ?: language)
+                }
+                DropdownMenu(expanded = languageExpanded, onDismissRequest = { languageExpanded = false }) {
+                    languages.forEach { locale ->
+                        DropdownMenuItem(
+                            text = { Text("${locale.displayName} (${locale.toLanguageTag()})") },
+                            onClick = { language = locale.toLanguageTag(); languageExpanded = false }
+                        )
                     }
                 }
             }
