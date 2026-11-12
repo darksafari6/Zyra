@@ -18,5 +18,9 @@ dependencies {
     implementation(project(":core-network"))
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.hilt.android)
+    testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.turbine)
+    testImplementation(libs.kotlinx.coroutines.test)
     ksp(libs.hilt.compiler)
 }
