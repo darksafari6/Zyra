@@ -17,14 +17,14 @@ interface ConversationDao {
     suspend fun insert(conversation: Conversation): Long
 
     @Query("UPDATE conversations SET title = :title, updatedAt = :updatedAt WHERE id = :id")
-    suspend fun rename(id: Long, title: String, updatedAt: Long = System.currentTimeMillis())
+    suspend fun rename(id: Long, title: String, updatedAt: Long)
 
     @Query("UPDATE conversations SET summary = :summary, summaryThroughMessageId = :throughId, updatedAt = :updatedAt WHERE id = :id")
-    suspend fun updateSummary(id: Long, summary: String, throughId: Long, updatedAt: Long = System.currentTimeMillis())
+    suspend fun updateSummary(id: Long, summary: String, throughId: Long, updatedAt: Long)
 
     @Query("DELETE FROM conversations WHERE id = :id")
     suspend fun delete(id: Long)
 
     @Query("UPDATE conversations SET updatedAt = :updatedAt WHERE id = :id")
-    suspend fun touch(id: Long, updatedAt: Long = System.currentTimeMillis())
+    suspend fun touch(id: Long, updatedAt: Long)
 }
