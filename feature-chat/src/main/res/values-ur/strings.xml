@@ -31,4 +31,27 @@
     <string name="voice_title">زائرا وائس</string>
     <string name="voice_stop">آواز بند کریں</string>
     <string name="voice_dismiss">بند کرنے کے لیے نیچے سوائپ کریں یا ٹیپ کریں</string>
+    <string name="settings_key_saved">اس ڈیوائس پر ایک خفیہ کردہ API کی محفوظ ہے۔</string>
+    <string name="settings_no_key">ابھی کوئی API کی محفوظ نہیں۔</string>
+    <string name="settings_api_key">Gemini API کی</string>
+    <string name="settings_replace_key">محفوظ کی — نئی کی درج کریں</string>
+    <string name="settings_paste_key">اپنی API کی پیسٹ کریں</string>
+    <string name="settings_save_key">کی محفوظ کریں</string>
+    <string name="settings_clear_key">کی صاف کریں</string>
+    <string name="settings_text_model">ٹیکسٹ ماڈل آئی ڈی</string>
+    <string name="settings_text_model_hint">دستیاب Gemini ماڈل آئی ڈی درج کریں</string>
+    <string name="settings_live_model">لائیو ماڈل آئی ڈی (پیس 7 کے لیے)</string>
+    <string name="settings_live_model_hint">Live API ترتیب دیتے وقت درج کریں</string>
+    <string name="settings_personality">زائرا کی سسٹم شخصیت</string>
+    <string name="settings_language">بولنے کی زبان (BCP-47)</string>
+    <string name="settings_language_hint">en-US, ur-PK, hi-IN</string>
+    <string name="settings_speed">بولنے کی رفتار: %1$.2fx</string>
+    <string name="settings_pitch">آواز کی پچ: %1$.2fx</string>
+    <string name="settings_saved">ترتیبات کامیابی سے محفوظ ہو گئیں۔</string>
+    <string name="settings_testing">جانچ جاری ہے…</string>
+    <string name="settings_clear_description">اس ڈیوائس سے تمام محفوظ پیغامات اور مقامی تصاویر صاف کریں۔</string>
+    <string name="settings_clear_confirm_title">چیٹ کی تاریخ صاف کریں؟</string>
+    <string name="settings_clear_confirm_body">یہ محفوظ پیغامات اور چیٹ تصاویر مستقل طور پر حذف کر دے گا۔</string>
+    <string name="common_cancel">منسوخ</string>
+    <string name="common_clear">صاف کریں</string>
 </resources>
