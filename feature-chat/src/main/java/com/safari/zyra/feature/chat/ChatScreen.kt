@@ -43,6 +43,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -66,6 +68,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
@@ -123,6 +126,11 @@ fun ChatScreen(
     var draft by remember { mutableStateOf("") }
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
     var showAttachMenu by remember { mutableStateOf(false) }
+    var showConversationPanel by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var renameConversationId by remember { mutableStateOf<Long?>(null) }
+    var renameConversationTitle by remember { mutableStateOf("") }
+    var deleteConversationId by remember { mutableStateOf<Long?>(null) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val isAtBottom by remember { derivedStateOf { listState.layoutInfo.totalItemsCount == 0 || listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index == listState.layoutInfo.totalItemsCount - 1 } }
@@ -176,6 +184,7 @@ fun ChatScreen(
                     letterSpacing = 1.sp
                 )
             }
+            TextButton(onClick = { showConversationPanel = true }) { Text("Chats", color = ZyraColors.cyan) }
             IconButton(onClick = onOpenSettings) {
                 Icon(painterResource(R.drawable.ic_zyra_settings), contentDescription = "Settings", tint = ZyraColors.text)
             }
@@ -373,6 +382,78 @@ fun ChatScreen(
         Dialog(onDismissRequest = { viewModel.stopVoice(); showVoiceMode = false }, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
             VoiceModeScreen(state.voiceState, reduceEffects = state.reduceEffects || lowPerformance, onStop = { viewModel.stopVoice(); showVoiceMode = false }, onDismiss = { viewModel.stopVoice(); showVoiceMode = false })
         }
+    }
+
+
+    if (showConversationPanel) {
+        AlertDialog(
+            onDismissRequest = { showConversationPanel = false; searchQuery = ""; viewModel.clearSearch() },
+            title = { Text("Conversations") },
+            text = {
+                Column(Modifier.fillMaxWidth().heightIn(max = 480.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it; viewModel.searchMessages(it) },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Search all messages") },
+                        singleLine = true
+                    )
+                    if (searchQuery.isNotBlank()) {
+                        state.searchResults.forEach { result ->
+                            TextButton(onClick = {
+                                viewModel.openConversation(result.conversation_id)
+                                showConversationPanel = false
+                                searchQuery = ""
+                                viewModel.clearSearch()
+                            }) {
+                                Text(result.text.take(100).ifBlank { "Image message" }, color = ZyraColors.text)
+                            }
+                        }
+                    } else {
+                        state.conversations.forEach { conversation ->
+                            Column(Modifier.fillMaxWidth().background(ZyraColors.glass, RoundedCornerShape(12.dp)).padding(8.dp)) {
+                                Text(conversation.title, color = ZyraColors.text, fontWeight = FontWeight.SemiBold)
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    TextButton(onClick = { viewModel.openConversation(conversation.id); showConversationPanel = false }) { Text("Open") }
+                                    TextButton(onClick = {
+                                        renameConversationId = conversation.id
+                                        renameConversationTitle = conversation.title
+                                    }) { Text("Rename") }
+                                    TextButton(onClick = { deleteConversationId = conversation.id }) { Text("Delete", color = ZyraColors.error) }
+                                }
+                            }
+                        }
+                    }
+                    Button(onClick = { viewModel.newConversation(); showConversationPanel = false }) { Text("New chat") }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showConversationPanel = false; searchQuery = ""; viewModel.clearSearch() }) { Text("Close") } },
+            containerColor = ZyraColors.surface,
+            titleContentColor = ZyraColors.text,
+            textContentColor = ZyraColors.muted
+        )
+    }
+
+    renameConversationId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { renameConversationId = null },
+            title = { Text("Rename conversation") },
+            text = { OutlinedTextField(renameConversationTitle, { renameConversationTitle = it }, label = { Text("Conversation name") }, singleLine = true) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.renameConversation(id, renameConversationTitle); renameConversationId = null }) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = { renameConversationId = null }) { Text("Cancel") } }
+        )
+    }
+
+    deleteConversationId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { deleteConversationId = null },
+            title = { Text("Delete conversation?") },
+            text = { Text("All messages in this conversation will be deleted from this device.") },
+            confirmButton = { TextButton(onClick = { viewModel.deleteConversation(id); deleteConversationId = null }) { Text("Delete", color = ZyraColors.error) } },
+            dismissButton = { TextButton(onClick = { deleteConversationId = null }) { Text("Cancel") } }
+        )
     }
 
     if (showMicRationale) {
