@@ -35,6 +35,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
@@ -64,9 +65,9 @@ fun SettingsScreen(
         Modifier.fillMaxSize().safeDrawingPadding().imePadding().background(ZyraColors.background).verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(13.dp)
     ) {
-        TextButton(onClick = onBack) { Text("←  Back to chat", color = ZyraColors.cyan) }
-        Text("Settings", color = ZyraColors.text, fontSize = MaterialTheme.typography.headlineSmall.fontSize)
-        Text("Gemini connection", color = ZyraColors.cyan, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
+        TextButton(onClick = onBack) { Text(stringResource(R.string.settings_back), color = ZyraColors.cyan) }
+        Text(stringResource(R.string.settings_title), color = ZyraColors.text, fontSize = MaterialTheme.typography.headlineSmall.fontSize)
+        Text(stringResource(R.string.settings_gemini), color = ZyraColors.cyan, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
         Surface(color = ZyraColors.glass, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(if (state.hasApiKey) "An encrypted API key is saved on this device." else "No API key saved yet.", color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize)
@@ -87,7 +88,7 @@ fun SettingsScreen(
             }
         }
 
-        Text("Model configuration", color = ZyraColors.cyan, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
+        Text(stringResource(R.string.settings_models), color = ZyraColors.cyan, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
         OutlinedTextField(
             value = textModel,
             onValueChange = { textModel = it },
@@ -114,15 +115,15 @@ fun SettingsScreen(
             minLines = 4,
             colors = zyraFieldColors()
         )
-        Text("Accessibility & performance", color = ZyraColors.cyan, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
+        Text(stringResource(R.string.settings_accessibility), color = ZyraColors.cyan, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Column(Modifier.weight(1f)) {
-                Text("Reduce effects", color = ZyraColors.text, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
-                Text("Use simpler motion and fewer visual effects.", color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize)
+                Text(stringResource(R.string.settings_reduce_effects), color = ZyraColors.text, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
+                Text(stringResource(R.string.settings_reduce_effects_desc), color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize)
             }
             Switch(checked = state.reduceEffects, onCheckedChange = viewModel::setReduceEffects)
         }
-        Text("Voice preferences", color = ZyraColors.cyan, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
+        Text(stringResource(R.string.settings_voice), color = ZyraColors.cyan, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
         OutlinedTextField(
             value = voiceLanguage,
             onValueChange = { voiceLanguage = it },
@@ -143,7 +144,7 @@ fun SettingsScreen(
                 scope.launch { snackbarHostState.showSnackbar("Settings saved successfully.") }
             },
             modifier = Modifier.fillMaxWidth()
-        ) { Text("Save settings") }
+        ) { Text(stringResource(R.string.settings_save)) }
         SnackbarHost(hostState = snackbarHostState)
 
         Button(
@@ -151,15 +152,15 @@ fun SettingsScreen(
             modifier = Modifier.fillMaxWidth(),
             enabled = !state.testingConnection && state.hasApiKey && textModel.isNotBlank()
         ) {
-            if (state.testingConnection) Text("Testing…") else Text("Test Gemini connection")
+            if (state.testingConnection) Text("Testing…") else Text(stringResource(R.string.settings_test))
         }
         state.error?.let { Text(it, color = ZyraColors.error, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
         state.testResult?.let { Text(it, color = if (it.startsWith("Connected")) ZyraColors.success else ZyraColors.error, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
 
         Spacer(Modifier.height(5.dp))
-        Text("Chat data", color = ZyraColors.cyan, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
+        Text(stringResource(R.string.settings_chat_data), color = ZyraColors.cyan, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
         Text("Clear all saved messages and locally stored chat images from this device.", color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize)
-        TextButton(onClick = { confirmClear = true }) { Text("Clear chat history", color = ZyraColors.error) }
+        TextButton(onClick = { confirmClear = true }) { Text(stringResource(R.string.settings_clear_history), color = ZyraColors.error) }
         Spacer(Modifier.height(24.dp))
     }
 
