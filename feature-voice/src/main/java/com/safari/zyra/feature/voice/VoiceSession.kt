@@ -91,7 +91,26 @@ class VoiceSession @Inject constructor(
         responseJob = scope.launch {
             val response = StringBuilder()
             try {
-                val history = chat.recentForPrompt(100, conversationId).dropLast(1).map { GeminiTurn(it.role, it.text) }
+                val recent = chat.recentForPrompt(500, conversationId)
+                val conversation = chat.getConversation(conversationId)
+                val previousSummaryThrough = conversation?.summaryThroughMessageId ?: 0L
+                val olderTurns = recent.filter { it.id > previousSummaryThrough }.dropLast(24)
+                var summary = conversation?.summary.orEmpty()
+                var summaryThrough = previousSummaryThrough
+                if (olderTurns.isNotEmpty()) {
+                    val olderText = olderTurns.joinToString("\n") { turn ->
+                        "${turn.role}: ${turn.text.take(360)}" + if (turn.imagePath != null) " [Earlier image omitted]" else ""
+                    }
+                    summary = (summary + "\n" + olderText).trim().takeLast(6_000)
+                    summaryThrough = olderTurns.last().id
+                    chat.updateSummary(conversationId, summary, summaryThrough)
+                }
+                val history = buildList {
+                    if (summary.isNotBlank()) add(GeminiTurn("summary", summary))
+                    addAll(recent.filter { it.id > summaryThrough }.dropLast(1).map { turn ->
+                        GeminiTurn(turn.role, turn.text + if (turn.imagePath != null) " [Earlier image omitted]" else "")
+                    })
+                }
                 gemini.streamReply(
                     apiKey = keys.read(),
                     modelId = config.textModelId,
