@@ -90,6 +90,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.safari.zyra.core.ui.brand.JellyOrb
 import com.safari.zyra.core.ui.brand.ZyraLogo
+import com.safari.zyra.core.ui.PerformanceTier
 import com.safari.zyra.core.ui.theme.ZyraColors
 import coil3.compose.AsyncImage
 import java.io.File
@@ -105,6 +106,7 @@ fun ChatScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    val lowPerformance = remember { PerformanceTier.current(context).usesSimpleMotion }
     val haptic = LocalHapticFeedback.current
     var showMicRationale by remember { mutableStateOf(false) }
     var showVoiceMode by remember { mutableStateOf(false) }
@@ -290,7 +292,7 @@ fun ChatScreen(
                 },
                 enabled = !state.isStreaming,
                 contentDescription = "Voice input",
-                reduceEffects = state.reduceEffects,
+                reduceEffects = state.reduceEffects || lowPerformance,
                 stateDescription = when (state.voiceState) {
                     is VoiceState.Listening -> "Listening"
                     is VoiceState.Thinking -> "Thinking"
@@ -425,7 +427,7 @@ private fun MessageBubble(isUser: Boolean, text: String, imagePath: String?, str
         }
         if (!streaming) {
             Row(Modifier.padding(start = 8.dp, top = 3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
-                timestamp?.let { Text(SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(it)), color = ZyraColors.muted, style = MaterialTheme.typography.labelSmall) }
+                timestamp?.let { Text(SimpleDateFormat("MMM d · HH:mm", Locale.getDefault()).format(Date(it)), color = ZyraColors.muted, style = MaterialTheme.typography.labelSmall) }
                 TextButton(onClick = { val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Zyra message", text)) }) { Text(stringResource(R.string.chat_copy)) }
                 TextButton(onClick = { val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text); context.startActivity(Intent.createChooser(send, "Share message")) }) { Text(stringResource(R.string.chat_share)) }
                 onRegenerate?.let { TextButton(onClick = it) { Text(stringResource(R.string.chat_regenerate)) } }
