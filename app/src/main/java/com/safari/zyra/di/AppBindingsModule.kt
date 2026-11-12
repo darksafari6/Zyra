@@ -34,7 +34,9 @@ abstract class AppBindingsModule {
     companion object {
         @Provides @Singleton
         fun provideDatabase(@ApplicationContext context: Context): ZyraDatabase =
-            Room.databaseBuilder(context, ZyraDatabase::class.java, "zyra_chat.db").build()
+            Room.databaseBuilder(context, ZyraDatabase::class.java, "zyra_chat.db")
+                .addMigrations(ZyraDatabase.MIGRATION_1_2)
+                .build()
 
         @Provides fun provideChatDao(database: ZyraDatabase): ChatMessageDao = database.chatMessageDao()
 

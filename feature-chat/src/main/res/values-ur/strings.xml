@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_greeting">سلام، میں زائرا ہوں۔</string>
+    <string name="chat_subtitle">مجھ سے کچھ بھی پوچھیں۔ آئیے شروع کرتے ہیں۔</string>
+    <string name="chat_setup_hint">شروع کرنے کے لیے سیٹنگز میں Gemini کی اور ماڈل آئی ڈی شامل کریں۔</string>
+    <string name="chat_suggestion_anything">کچھ بھی پوچھیں</string>
+    <string name="chat_suggestion_photo">تصویر کی وضاحت کریں</string>
+    <string name="chat_suggestion_day">میرے دن کی منصوبہ بندی</string>
+    <string name="chat_input_hint">زائرا کو پیغام لکھیں…</string>
+    <string name="chat_attach">تصویر لگائیں یا تصویر کھینچیں</string>
+    <string name="chat_gallery">گیلری سے منتخب کریں</string>
+    <string name="chat_camera">تصویر کھینچیں</string>
+    <string name="chat_image_attached">تصویر منسلک ہے</string>
+    <string name="chat_remove">ہٹائیں</string>
+    <string name="chat_copy">کاپی</string>
+    <string name="chat_share">شیئر</string>
+    <string name="chat_regenerate">دوبارہ بنائیں</string>
+    <string name="chat_delete">حذف کریں</string>
+    <string name="settings_title">ترتیبات</string>
+    <string name="settings_back">← چیٹ پر واپس جائیں</string>
+    <string name="settings_gemini">Gemini کنکشن</string>
+    <string name="settings_models">ماڈل کی ترتیبات</string>
+    <string name="settings_accessibility">رسائی اور کارکردگی</string>
+    <string name="settings_reduce_effects">اثرات کم کریں</string>
+    <string name="settings_reduce_effects_desc">سادہ حرکت اور کم بصری اثرات استعمال کریں۔</string>
+    <string name="settings_voice">آواز کی ترجیحات</string>
+    <string name="settings_save">ترتیبات محفوظ کریں</string>
+    <string name="settings_test">Gemini کنکشن آزمائیں</string>
+    <string name="settings_chat_data">چیٹ کا ڈیٹا</string>
+    <string name="settings_clear_history">چیٹ کی تاریخ صاف کریں</string>
+    <string name="voice_title">زائرا وائس</string>
+    <string name="voice_stop">آواز بند کریں</string>
+    <string name="voice_dismiss">بند کرنے کے لیے نیچے سوائپ کریں یا ٹیپ کریں</string>
+</resources>

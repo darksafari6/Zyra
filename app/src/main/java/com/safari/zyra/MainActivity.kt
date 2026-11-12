@@ -7,6 +7,8 @@ import androidx.activity.enableEdgeToEdge
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
@@ -18,7 +20,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
+import com.safari.zyra.core.ui.theme.ZyraColors
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -28,15 +30,23 @@ import com.safari.zyra.feature.chat.ChatScreen
 import com.safari.zyra.feature.chat.SettingsScreen
 import com.safari.zyra.ui.splash.ZyraSplash
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
+import com.safari.zyra.feature.voice.VoiceSession
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject lateinit var voiceSession: VoiceSession
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent { ZyraTheme { ZyraNavigation() } }
+    }
+
+    override fun onStop() {
+        voiceSession.stop()
+        super.onStop()
     }
 }
 
@@ -49,12 +59,8 @@ private object ZyraRoutes {
 private fun ZyraNavigation() {
     val navController = rememberNavController()
     var introComplete by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(2_500)
-        introComplete = true
-    }
     AnimatedContent(
-        modifier = Modifier.fillMaxSize().background(Color(0xFF05060A)),
+        modifier = Modifier.fillMaxSize().background(ZyraColors.background),
         targetState = introComplete,
         transitionSpec = { fadeIn(tween(520)) togetherWith fadeOut(tween(300)) },
         label = "zyra-intro-to-chat"
@@ -63,10 +69,10 @@ private fun ZyraNavigation() {
             ZyraSplash(onFinished = { introComplete = true })
         } else {
             NavHost(navController = navController, startDestination = ZyraRoutes.CHAT) {
-                composable(ZyraRoutes.CHAT) {
+                composable(ZyraRoutes.CHAT, enterTransition = { fadeIn(tween(260)) + scaleIn(initialScale = .96f, animationSpec = tween(260)) }, exitTransition = { fadeOut(tween(180)) + scaleOut(targetScale = .98f, animationSpec = tween(180)) }) {
                     ChatScreen(onOpenSettings = { navController.navigate(ZyraRoutes.SETTINGS) })
                 }
-                composable(ZyraRoutes.SETTINGS) {
+                composable(ZyraRoutes.SETTINGS, enterTransition = { fadeIn(tween(260)) + scaleIn(initialScale = .96f, animationSpec = tween(260)) }, popExitTransition = { fadeOut(tween(180)) + scaleOut(targetScale = .98f, animationSpec = tween(180)) }) {
                     SettingsScreen(onBack = { navController.popBackStack() })
                 }
             }

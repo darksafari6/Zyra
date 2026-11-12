@@ -13,5 +13,6 @@ data class ChatUiState(
     val hasApiKey: Boolean = false,
     val testingConnection: Boolean = false,
     val testResult: String? = null,
-    val voiceState: VoiceState = VoiceState.Idle
+    val voiceState: VoiceState = VoiceState.Idle,
+    val reduceEffects: Boolean = false
 )

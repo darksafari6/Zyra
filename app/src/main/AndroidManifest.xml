@@ -19,6 +19,7 @@
         </intent>
     </queries>
     <application
+        android:enableOnBackInvokedCallback="true"
         android:name=".ZyraApplication"
         android:allowBackup="false"
         android:icon="@mipmap/ic_zyra"
@@ -28,7 +29,8 @@
         android:theme="@style/Theme.Zyra.Starting">
         <activity
             android:name=".MainActivity"
-            android:exported="true">
+            android:exported="true"
+            android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

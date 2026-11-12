@@ -7,7 +7,10 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Button
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -33,6 +36,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -43,16 +48,29 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.selection.SelectionContainer
+import androidx.compose.foundation.gestures.rememberTransformableState
+import androidx.compose.foundation.gestures.transformable
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
+import androidx.compose.material3.AssistChip
+import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -61,6 +79,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -71,8 +90,13 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.safari.zyra.core.ui.brand.JellyOrb
 import com.safari.zyra.core.ui.brand.ZyraLogo
+import com.safari.zyra.core.ui.theme.ZyraColors
 import coil3.compose.AsyncImage
 import java.io.File
+import java.text.SimpleDateFormat
+import java.util.Date
+import java.util.Locale
+import kotlinx.coroutines.launch
 
 @Composable
 fun ChatScreen(
@@ -83,9 +107,11 @@ fun ChatScreen(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     var showMicRationale by remember { mutableStateOf(false) }
+    var showVoiceMode by remember { mutableStateOf(false) }
     val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) {
             viewModel.startVoice()
+            showVoiceMode = true
         } else viewModel.voicePermissionDenied()
     }
     val listening = state.voiceState is VoiceState.Listening
@@ -95,23 +121,26 @@ fun ChatScreen(
     }
     var draft by remember { mutableStateOf("") }
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
+    var showAttachMenu by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) {
-        selectedImage = it
-    }
-    LaunchedEffect(state.messages.size, state.isStreaming) {
-        val target = state.messages.size + if (state.isStreaming) 1 else 0
-        if (target > 0) listState.animateScrollToItem(target - 1)
-    }
-    LaunchedEffect(state.streamingText) {
-        if (state.streamingText.isNotEmpty()) {
-            val target = state.messages.size
-            if (target >= 0) listState.scrollToItem(target)
+    val coroutineScope = rememberCoroutineScope()
+    val isAtBottom by remember { derivedStateOf { listState.layoutInfo.totalItemsCount == 0 || listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index == listState.layoutInfo.totalItemsCount - 1 } }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { selectedImage = it }
+    val cameraPreview = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
+        if (bitmap != null) {
+            val photo = File(context.cacheDir, "zyra_camera_${System.currentTimeMillis()}.jpg")
+            photo.outputStream().use { bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 88, it) }
+            selectedImage = Uri.fromFile(photo)
         }
+    }
+    LaunchedEffect(state.messages.size, state.isStreaming, state.streamingText, state.voiceState) {
+        kotlinx.coroutines.delay(60)
+        val last = listState.layoutInfo.totalItemsCount - 1
+        if (last >= 0) listState.animateScrollToItem(last)
     }
 
     Column(
-        Modifier.fillMaxSize().background(Color(0xFF05060A)).padding(horizontal = 14.dp),
+        Modifier.fillMaxSize().safeDrawingPadding().imePadding().background(ZyraColors.background).padding(horizontal = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(
@@ -123,13 +152,13 @@ fun ChatScreen(
             }
             Spacer(Modifier.width(9.dp))
             Column(Modifier.weight(1f)) {
-                Text("ZYRA", color = Color(0xFFEAF0FF), fontSize = 17.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-                Text("by Safari", color = Color(0xFF8C9AB8), fontSize = 10.sp, letterSpacing = 1.sp)
+                Text("ZYRA", color = ZyraColors.text, fontSize = MaterialTheme.typography.bodyLarge.fontSize, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                Text("by Safari", color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize, letterSpacing = 1.sp)
             }
             Surface(
-                color = if (state.hasApiKey && state.settings.textModelId.isNotBlank()) Color(0x2220D8A0) else Color(0x22FFB74D),
+                color = if (state.hasApiKey && state.settings.textModelId.isNotBlank()) ZyraColors.success.copy(alpha = .12f) else ZyraColors.warning.copy(alpha = .12f),
                 shape = CircleShape,
-                modifier = Modifier.border(1.dp, if (state.hasApiKey && state.settings.textModelId.isNotBlank()) Color(0x6648E0B0) else Color(0x66FFB74D), CircleShape)
+                modifier = Modifier.border(1.dp, if (state.hasApiKey && state.settings.textModelId.isNotBlank()) ZyraColors.success.copy(alpha = .4f) else ZyraColors.warning.copy(alpha = .4f), CircleShape)
             ) {
                 Text(
                     when (state.voiceState) {
@@ -140,19 +169,19 @@ fun ChatScreen(
                         VoiceState.Idle -> if (state.hasApiKey && state.settings.textModelId.isNotBlank()) "READY" else "SETUP"
                     },
                     modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
-                    color = if (state.hasApiKey && state.settings.textModelId.isNotBlank()) Color(0xFF72E7BE) else Color(0xFFFFC56D),
-                    fontSize = 9.sp,
+                    color = if (state.hasApiKey && state.settings.textModelId.isNotBlank()) ZyraColors.success else ZyraColors.warning,
+                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
                 )
             }
             IconButton(onClick = onOpenSettings) {
-                Icon(painterResource(R.drawable.ic_zyra_settings), contentDescription = "Settings", tint = Color(0xFFEAF0FF))
+                Icon(painterResource(R.drawable.ic_zyra_settings), contentDescription = "Settings", tint = ZyraColors.text)
             }
         }
 
         LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
+            modifier = Modifier.weight(1f).fillMaxWidth().widthIn(max = 760.dp).wrapContentWidth(Alignment.CenterHorizontally),
             state = listState,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -161,17 +190,22 @@ fun ChatScreen(
                     Column(Modifier.fillMaxWidth().padding(top = 42.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         ZyraLogo(progress = 1f, modifier = Modifier.size(132.dp))
                         Spacer(Modifier.height(16.dp))
-                        Text("Hey, I'm Zyra.", color = Color(0xFFEAF0FF), fontSize = 23.sp, fontWeight = FontWeight.SemiBold)
-                        Text("Ask me anything. Let's make it happen.", color = Color(0xFF9BA7C2), fontSize = 13.sp)
+                        Text(stringResource(R.string.chat_greeting), color = ZyraColors.text, fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.chat_subtitle), color = ZyraColors.muted, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 18.dp)) {
+                            listOf(stringResource(R.string.chat_suggestion_anything), stringResource(R.string.chat_suggestion_photo), stringResource(R.string.chat_suggestion_day)).forEach { suggestion ->
+                                AssistChip(onClick = { draft = suggestion }, label = { Text(suggestion) }, colors = AssistChipDefaults.assistChipColors(labelColor = ZyraColors.cyan))
+                            }
+                        }
                         if (!state.hasApiKey || state.settings.textModelId.isBlank()) {
-                            Text("Add your Gemini key and model ID in Settings to start.", color = Color(0xFF00E5FF), fontSize = 11.sp, modifier = Modifier.padding(top = 12.dp))
+                            Text(stringResource(R.string.chat_setup_hint), color = ZyraColors.cyan, fontSize = MaterialTheme.typography.labelSmall.fontSize, modifier = Modifier.padding(top = 12.dp))
                         }
                     }
                 }
             }
             items(state.messages, key = { "message_${it.id}" }) { message ->
-                AnimatedVisibility(visible = true, enter = fadeIn() + slideInVertically(initialOffsetY = { it / 5 })) {
-                    MessageBubble(message.role == "user", message.text, message.imagePath)
+                AnimatedVisibility(visible = true, enter = fadeIn() + slideInVertically(initialOffsetY = { it / 5 }), modifier = Modifier.animateItem()) {
+                    MessageBubble(message.role == "user", message.text, message.imagePath, timestamp = message.timestamp, onDelete = { viewModel.deleteMessage(message.id) }, onRegenerate = if (message.role == "assistant") viewModel::regenerateLastReply else null)
                 }
             }
             if (state.isStreaming) {
@@ -185,10 +219,10 @@ fun ChatScreen(
                     VoiceStatusBubble("Listening", voice.transcript.ifBlank { "I'm listening…" })
                 }
                 is VoiceState.Thinking -> item(key = "voice-thinking") {
-                    VoiceStatusBubble("Thinking", voice.transcript)
+                    VoiceStatusBubble("Thinking", "Preparing a reply…")
                 }
                 is VoiceState.Speaking -> item(key = "voice-speaking") {
-                    VoiceStatusBubble("Speaking", voice.response.ifBlank { "Preparing a reply…" })
+                    if (voice.response.isNotBlank()) MessageBubble(false, voice.response, null, streaming = true) else VoiceStatusBubble("Speaking", "Preparing a reply…")
                 }
                 is VoiceState.Error -> item(key = "voice-error") {
                     VoiceStatusBubble("Voice", voice.message)
@@ -198,44 +232,54 @@ fun ChatScreen(
             state.error?.let { message ->
                 item(key = "error") {
                     Row(
-                        Modifier.fillMaxWidth().background(Color(0x22FF5252), RoundedCornerShape(14.dp)).padding(10.dp),
+                        Modifier.fillMaxWidth().background(ZyraColors.error.copy(alpha = .12f), RoundedCornerShape(14.dp)).padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(message, color = Color(0xFFFFA0A0), fontSize = 12.sp, modifier = Modifier.weight(1f))
-                        TextButton(onClick = viewModel::dismissError) { Text("Dismiss", color = Color(0xFFFFA0A0)) }
+                        Text(message, color = ZyraColors.error, fontSize = MaterialTheme.typography.labelSmall.fontSize, modifier = Modifier.weight(1f))
+                        TextButton(onClick = viewModel::dismissError) { Text("Dismiss", color = ZyraColors.error) }
                     }
                 }
             }
         }
 
+        if (!isAtBottom) {
+            TextButton(onClick = { coroutineScope.launch { val last = listState.layoutInfo.totalItemsCount - 1; if (last >= 0) listState.animateScrollToItem(last) } }, modifier = Modifier.align(Alignment.End)) { Text("↓ Latest message", color = ZyraColors.cyan) }
+        }
+
         if (selectedImage != null) {
             Row(
-                Modifier.fillMaxWidth().background(Color(0xFF10182B), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 7.dp),
+                Modifier.fillMaxWidth().background(ZyraColors.surfaceElevated, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Image attached", color = Color(0xFF00E5FF), fontSize = 12.sp, modifier = Modifier.weight(1f))
-                TextButton(onClick = { selectedImage = null }) { Text("Remove") }
+                Text(stringResource(R.string.chat_image_attached), color = ZyraColors.cyan, fontSize = MaterialTheme.typography.labelSmall.fontSize, modifier = Modifier.weight(1f))
+                TextButton(onClick = { selectedImage = null }) { Text(stringResource(R.string.chat_remove)) }
             }
         }
 
         Row(
-            Modifier.fillMaxWidth().background(Color(0xCC0E1220), RoundedCornerShape(28.dp))
-                .border(1.dp, Color(0x553C5B83), RoundedCornerShape(28.dp))
+            Modifier.fillMaxWidth().background(ZyraColors.glass, RoundedCornerShape(28.dp))
+                .border(1.dp, ZyraColors.border, RoundedCornerShape(28.dp))
                 .padding(horizontal = 7.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            IconButton(onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) }) {
-                Icon(painterResource(R.drawable.ic_zyra_attach), contentDescription = "Attach image")
+            Box {
+                IconButton(onClick = { showAttachMenu = true }) { Icon(painterResource(R.drawable.ic_zyra_attach), contentDescription = "Attach image or take photo") }
+                DropdownMenu(expanded = showAttachMenu, onDismissRequest = { showAttachMenu = false }) {
+                    DropdownMenuItem(text = { Text(stringResource(R.string.chat_gallery)) }, onClick = { showAttachMenu = false; picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.chat_camera)) }, onClick = { showAttachMenu = false; cameraPreview.launch(null) })
+                }
             }
             Box(Modifier.weight(1f).padding(horizontal = 4.dp), contentAlignment = Alignment.CenterStart) {
-                if (draft.isEmpty()) Text("Message Zyra...", color = Color(0xFF7E8BA6), fontSize = 14.sp)
+                if (draft.isEmpty()) Text(stringResource(R.string.chat_input_hint), color = ZyraColors.muted, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
                 BasicTextField(
                     value = draft,
                     onValueChange = { draft = it },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !state.isStreaming,
-                    textStyle = androidx.compose.ui.text.TextStyle(color = Color(0xFFEAF0FF), fontSize = 14.sp),
-                    maxLines = 5
+                    textStyle = androidx.compose.ui.text.TextStyle(color = ZyraColors.text, fontSize = MaterialTheme.typography.bodyMedium.fontSize),
+                    maxLines = 5,
+                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Send, keyboardType = KeyboardType.Text),
+                    keyboardActions = KeyboardActions(onSend = { if (!state.isStreaming && (draft.isNotBlank() || selectedImage != null)) { viewModel.sendMessage(draft, selectedImage); draft = ""; selectedImage = null } })
                 )
             }
             val amplitude = (state.voiceState as? VoiceState.Listening)?.amplitude ?: 0f
@@ -245,6 +289,15 @@ fun ChatScreen(
                     scaleY = 1f - amplitude * 0.10f
                 },
                 enabled = !state.isStreaming,
+                contentDescription = "Voice input",
+                reduceEffects = state.reduceEffects,
+                stateDescription = when (state.voiceState) {
+                    is VoiceState.Listening -> "Listening"
+                    is VoiceState.Thinking -> "Thinking"
+                    is VoiceState.Speaking -> "Speaking"
+                    is VoiceState.Error -> "Voice error"
+                    VoiceState.Idle -> "Ready"
+                },
                 onClick = {
                     when (state.voiceState) {
                         is VoiceState.Speaking -> viewModel.stopSpeaking()
@@ -252,6 +305,7 @@ fun ChatScreen(
                         else -> {
                             if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                                 viewModel.startVoice()
+                                showVoiceMode = true
                             } else showMicRationale = true
                         }
                     }
@@ -260,18 +314,18 @@ fun ChatScreen(
                 Surface(
                     modifier = Modifier.size(39.dp).border(
                         1.dp,
-                        if (listening) Color(0xFF00E5FF) else Color(0x6645CBE8),
+                        if (listening) ZyraColors.cyan else ZyraColors.cyan.copy(alpha = .4f),
                         CircleShape
                     ),
                     shape = CircleShape,
-                    color = if (listening) Color(0xFF123849) else Color(0xFF10182B)
+                    color = if (listening) ZyraColors.surfaceElevated else ZyraColors.surfaceElevated
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             painterResource(R.drawable.ic_zyra_mic),
                             contentDescription = if (listening) "Stop listening" else "Start voice chat",
                             modifier = Modifier.size(20.dp),
-                            tint = if (listening) Color(0xFF00E5FF) else Color(0xFFEAF0FF)
+                            tint = if (listening) ZyraColors.cyan else ZyraColors.text
                         )
                     }
                 }
@@ -289,7 +343,7 @@ fun ChatScreen(
                 Surface(
                     modifier = Modifier.size(39.dp),
                     shape = CircleShape,
-                    color = if (!state.isStreaming && (draft.isNotBlank() || selectedImage != null)) Color(0xFF00E5FF) else Color(0xFF33435B)
+                    color = if (!state.isStreaming && (draft.isNotBlank() || selectedImage != null)) ZyraColors.cyan else ZyraColors.border
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(painterResource(R.drawable.ic_zyra_send), contentDescription = "Send", modifier = Modifier.size(18.dp))
@@ -300,6 +354,12 @@ fun ChatScreen(
 
         ContactDock()
         Spacer(Modifier.height(5.dp))
+    }
+
+    if (showVoiceMode) {
+        Dialog(onDismissRequest = { viewModel.stopVoice(); showVoiceMode = false }, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+            VoiceModeScreen(state.voiceState, onStop = { viewModel.stopVoice(); showVoiceMode = false }, onDismiss = { viewModel.stopVoice(); showVoiceMode = false })
+        }
     }
 
     if (showMicRationale) {
@@ -316,9 +376,9 @@ fun ChatScreen(
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { showMicRationale = false }) { Text("Not now") }
             },
-            containerColor = Color(0xFF101522),
-            titleContentColor = Color(0xFFEAF0FF),
-            textContentColor = Color(0xFF9BA7C2)
+            containerColor = ZyraColors.surface,
+            titleContentColor = ZyraColors.text,
+            textContentColor = ZyraColors.muted
         )
     }
 }
@@ -328,54 +388,57 @@ private fun VoiceStatusBubble(title: String, body: String) {
     Surface(
         color = Color(0xCC101522),
         shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth(.92f).border(1.dp, Color(0x5535BFD9), RoundedCornerShape(16.dp))
+        modifier = Modifier.fillMaxWidth(.92f).border(1.dp, ZyraColors.cyan.copy(alpha = .3f), RoundedCornerShape(16.dp))
     ) {
         Column(Modifier.padding(horizontal = 13.dp, vertical = 10.dp)) {
-            Text(title.uppercase(), color = Color(0xFF00E5FF), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-            Text(body, color = Color(0xFFEAF0FF), fontSize = 13.sp, lineHeight = 19.sp)
+            Text(title.uppercase(), color = ZyraColors.cyan, fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text(body, color = ZyraColors.text, fontSize = MaterialTheme.typography.bodyMedium.fontSize, lineHeight = 19.sp)
         }
     }
 }
 
 @Composable
-private fun MessageBubble(isUser: Boolean, text: String, imagePath: String?, streaming: Boolean = false) {
+private fun MessageBubble(isUser: Boolean, text: String, imagePath: String?, streaming: Boolean = false, timestamp: Long? = null, onDelete: (() -> Unit)? = null, onRegenerate: (() -> Unit)? = null) {
     val context = LocalContext.current
+    var showImagePreview by remember { mutableStateOf(false) }
+    var imageScale by remember { mutableStateOf(1f) }
+    val imageTransform = rememberTransformableState { zoom, _, _ -> imageScale = (imageScale * zoom).coerceIn(1f, 5f) }
     Column(
         Modifier.fillMaxWidth(),
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
         Surface(
-            color = if (isUser) Color(0xFF14243A) else Color(0xCC101522),
+            color = if (isUser) ZyraColors.surfaceElevated else ZyraColors.glass,
             shape = RoundedCornerShape(
                 topStart = 18.dp, topEnd = 18.dp,
                 bottomStart = if (isUser) 18.dp else 5.dp,
                 bottomEnd = if (isUser) 5.dp else 18.dp
             ),
             modifier = Modifier.fillMaxWidth(.88f)
-                .border(1.dp, if (isUser) Color(0x5544BDE0) else Color(0x334A5B7D), RoundedCornerShape(18.dp))
+                .border(1.dp, if (isUser) ZyraColors.cyan.copy(alpha = .32f) else ZyraColors.border, RoundedCornerShape(18.dp))
         ) {
             Column(Modifier.padding(horizontal = 14.dp, vertical = 11.dp)) {
-                if (imagePath != null) AsyncImage(model = File(imagePath), contentDescription = "Attached image", modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp).clip(RoundedCornerShape(12.dp)).padding(bottom = 7.dp))
-                Text(
-                    markdownText(text),
-                    color = Color(0xFFEAF0FF),
-                    fontSize = 14.sp,
-                    lineHeight = 21.sp
-                )
-                if (streaming) Text("●", color = Color(0xFF00E5FF), fontSize = 8.sp)
+                if (imagePath != null) AsyncImage(model = File(imagePath), contentDescription = "Open attached image", modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp).clip(RoundedCornerShape(12.dp)).clickable { showImagePreview = true }.padding(bottom = 7.dp))
+                SelectionContainer { ZyraMarkdown(text) }
+                if (streaming) Text("●", color = ZyraColors.cyan, fontSize = MaterialTheme.typography.labelSmall.fontSize)
             }
         }
-        if (!isUser && !streaming && text.isNotBlank()) {
-            Text(
-                "COPY",
-                color = Color(0xFF7183A3),
-                fontSize = 9.sp,
-                letterSpacing = 1.sp,
-                modifier = Modifier.padding(start = 8.dp, top = 4.dp).clickable {
-                    val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Zyra message", text))
-                }.padding(4.dp)
-            )
+        if (!streaming) {
+            Row(Modifier.padding(start = 8.dp, top = 3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
+                timestamp?.let { Text(SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(it)), color = ZyraColors.muted, style = MaterialTheme.typography.labelSmall) }
+                TextButton(onClick = { val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Zyra message", text)) }) { Text(stringResource(R.string.chat_copy)) }
+                TextButton(onClick = { val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text); context.startActivity(Intent.createChooser(send, "Share message")) }) { Text(stringResource(R.string.chat_share)) }
+                onRegenerate?.let { TextButton(onClick = it) { Text(stringResource(R.string.chat_regenerate)) } }
+                onDelete?.let { TextButton(onClick = it) { Text(stringResource(R.string.chat_delete), color = ZyraColors.error) } }
+            }
+        }
+    }
+    if (showImagePreview && imagePath != null) {
+        Dialog(onDismissRequest = { showImagePreview = false; imageScale = 1f }, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+            Box(Modifier.fillMaxSize().background(ZyraColors.background), contentAlignment = Alignment.Center) {
+                AsyncImage(model = File(imagePath), contentDescription = "Zoomable attached image", modifier = Modifier.fillMaxSize().transformable(imageTransform).graphicsLayer { scaleX = imageScale; scaleY = imageScale })
+                TextButton(onClick = { showImagePreview = false; imageScale = 1f }, modifier = Modifier.align(Alignment.TopEnd).padding(16.dp)) { Text("Close", color = ZyraColors.text) }
+            }
         }
     }
 }
@@ -419,9 +482,9 @@ private fun TypingIndicator() {
                 animationSpec = infiniteRepeatable(tween(480, delayMillis = index * 140), RepeatMode.Reverse),
                 label = "typing-dot-$index"
             )
-            Box(Modifier.size(6.dp).background(Color(0xFF00E5FF).copy(alpha = alpha), CircleShape))
+            Box(Modifier.size(6.dp).background(ZyraColors.cyan.copy(alpha = alpha), CircleShape))
         }
-        Text("Zyra is thinking", color = Color(0xFF9BA7C2), fontSize = 11.sp)
+        Text("Zyra is thinking", color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize)
     }
 }
 
@@ -463,7 +526,7 @@ private fun ContactDock() {
                         }
                     }
                 }
-                Text(item.second, color = Color(0xFF8290AA), fontSize = 9.sp, modifier = Modifier.padding(top = 3.dp))
+                Text(item.second, color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize, modifier = Modifier.padding(top = 3.dp))
             }
         }
     }
