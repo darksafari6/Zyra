@@ -60,7 +60,7 @@ class GeminiRestClient @Inject constructor(
                 .put("data", Base64.encodeToString(it.bytes, Base64.NO_WRAP))))
         }
         contents.put(JSONObject().put("role", "user").put("parts", currentParts))
-        val instructions = if (summary.isBlank()) systemPrompt else "$systemPrompt\\n\\nRolling conversation summary (older turns):\\n$summary"
+        val instructions = if (summary.isBlank()) systemPrompt else "$systemPrompt\n\nRolling conversation summary (older turns):\n$summary"
         val body = JSONObject()
             .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", instructions))))
             .put("contents", contents)
