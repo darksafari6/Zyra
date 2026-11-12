@@ -99,6 +99,7 @@ fun ZyraSplash(onFinished: () -> Unit) {
                 modifier = Modifier.alpha(tagline.value),
                 style = TextStyle(color = ZyraColors.cyan, fontSize = MaterialTheme.typography.bodyMedium.fontSize, letterSpacing = 2.sp)
             )
+            Text(stringResource(com.safari.zyra.R.string.splash_skip), color = ZyraColors.muted, style = MaterialTheme.typography.labelSmall, modifier = Modifier.alpha(tagline.value).padding(top = 28.dp))
         }
     }
 }
