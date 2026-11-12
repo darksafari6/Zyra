@@ -27,14 +27,13 @@ fun JellyOrb(
     stateDescription: String = "Ready",
     content: @Composable BoxScope.() -> Unit
 ) {
-    var pressed by remember { mutableStateOf(false) }
     var idle by remember { mutableStateOf(false) }
     LaunchedEffect(enabled) {
         while (enabled) { idle = !idle; delay(1800) }
         idle = false
     }
-    val targetX = when { pressed -> .91f; idle -> 1.025f; else -> 1f }
-    val targetY = when { pressed -> 1.08f; idle -> .98f; else -> 1f }
+    val targetX = if (idle) 1.025f else 1f
+    val targetY = if (idle) .98f else 1f
     val sx by animateFloatAsState(targetX, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "orbScaleX")
     val sy by animateFloatAsState(targetY, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "orbScaleY")
     val interaction = if (onClick != null) Modifier.clickable(
@@ -44,8 +43,8 @@ fun JellyOrb(
         onClickLabel = "Activate voice assistant"
     ) else Modifier
     Box(
-        modifier = modifier.defaultMinSize(minWidth = 48.dp, minHeight = androidx.compose.ui.unit.dp(48f))
-            .graphicsLayer { scaleX = sx; scaleY = sy; translationY = if (idle && !pressed) -1.5f else 0f }
+        modifier = modifier.defaultMinSize(minWidth = 48.dp, minHeight = 48.dp)
+            .graphicsLayer { scaleX = sx; scaleY = sy; translationY = if (idle) -1.5f else 0f }
             .then(interaction)
             .semantics { this.contentDescription = contentDescription; this.stateDescription = stateDescription },
         contentAlignment = Alignment.Center,
