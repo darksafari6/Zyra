@@ -1,6 +1,8 @@
 package com.safari.zyra.feature.voice
 
+import android.Manifest
 import android.app.Activity
+import android.content.pm.PackageManager
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
@@ -32,16 +34,20 @@ class InstalledVoiceLocaleCatalog(
         if (SpeechRecognizer.isRecognitionAvailable(context)) {
             recognizer = SpeechRecognizer.createSpeechRecognizer(context)
             if (Build.VERSION.SDK_INT >= 33) {
-                val request = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
-                    .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
-                recognizer?.checkRecognitionSupport(request, mainExecutor, object : RecognitionSupportCallback {
-                    override fun onSupportResult(recognitionSupport: RecognitionSupport) {
-                        (recognitionSupport.installedOnDeviceLanguages + recognitionSupport.onlineLanguages)
-                            .mapTo(locales) { Locale.forLanguageTag(it) }
-                        publish()
+                if (context.checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+                    val request = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
+                        .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
+                    runCatching {
+                        recognizer?.checkRecognitionSupport(request, mainExecutor, object : RecognitionSupportCallback {
+                            override fun onSupportResult(recognitionSupport: RecognitionSupport) {
+                                (recognitionSupport.installedOnDeviceLanguages + recognitionSupport.onlineLanguages)
+                                    .mapTo(locales) { Locale.forLanguageTag(it) }
+                                publish()
+                            }
+                            override fun onError(error: Int) = publish()
+                        })
                     }
-                    override fun onError(error: Int) = publish()
-                })
+                }
             } else {
                 @Suppress("DEPRECATION")
                 context.sendOrderedBroadcast(
