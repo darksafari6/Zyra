@@ -1,2 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources><string name="app_name">ZYRA</string></resources>
+<resources>
+    <string name="app_name">ZYRA</string>
+    <string name="splash_name">ZYRA</string>
+    <string name="splash_by">by Safari</string>
+    <string name="splash_skip">Tap to continue</string>
+</resources>
