@@ -13,6 +13,8 @@ android {
     }
     kotlinOptions { jvmTarget = "17" }
 }
+ksp { arg("room.schemaLocation", "$projectDir/schemas") }
+
 dependencies {
     api(libs.androidx.room.runtime)
     api(libs.androidx.room.ktx)
