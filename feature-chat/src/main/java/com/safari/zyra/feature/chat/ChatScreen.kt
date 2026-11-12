@@ -73,6 +73,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.safari.zyra.core.ui.brand.JellyOrb
 import com.safari.zyra.core.ui.brand.ZyraLogo
+import com.safari.zyra.core.ui.theme.ZyraColors
 import coil3.compose.AsyncImage
 import java.io.File
 
@@ -247,6 +248,14 @@ fun ChatScreen(
                     scaleY = 1f - amplitude * 0.10f
                 },
                 enabled = !state.isStreaming,
+                contentDescription = "Voice input",
+                stateDescription = when (state.voiceState) {
+                    is VoiceState.Listening -> "Listening"
+                    is VoiceState.Thinking -> "Thinking"
+                    is VoiceState.Speaking -> "Speaking"
+                    is VoiceState.Error -> "Voice error"
+                    VoiceState.Idle -> "Ready"
+                },
                 onClick = {
                     when (state.voiceState) {
                         is VoiceState.Speaking -> viewModel.stopSpeaking()
