@@ -33,6 +33,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -111,7 +113,7 @@ fun ChatScreen(
     }
 
     Column(
-        Modifier.fillMaxSize().background(Color(0xFF05060A)).padding(horizontal = 14.dp),
+        Modifier.fillMaxSize().safeDrawingPadding().imePadding().background(Color(0xFF05060A)).padding(horizontal = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(
@@ -185,10 +187,10 @@ fun ChatScreen(
                     VoiceStatusBubble("Listening", voice.transcript.ifBlank { "I'm listening…" })
                 }
                 is VoiceState.Thinking -> item(key = "voice-thinking") {
-                    VoiceStatusBubble("Thinking", voice.transcript)
+                    VoiceStatusBubble("Thinking", "Preparing a reply…")
                 }
                 is VoiceState.Speaking -> item(key = "voice-speaking") {
-                    VoiceStatusBubble("Speaking", voice.response.ifBlank { "Preparing a reply…" })
+                    if (voice.response.isNotBlank()) MessageBubble(false, voice.response, null, streaming = true) else VoiceStatusBubble("Speaking", "Preparing a reply…")
                 }
                 is VoiceState.Error -> item(key = "voice-error") {
                     VoiceStatusBubble("Voice", voice.message)
