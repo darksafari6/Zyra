@@ -28,14 +28,23 @@ import com.safari.zyra.feature.chat.ChatScreen
 import com.safari.zyra.feature.chat.SettingsScreen
 import com.safari.zyra.ui.splash.ZyraSplash
 import dagger.hilt.android.AndroidEntryPoint
+import com.safari.zyra.feature.voice.VoiceSession
+import javax.inject.Inject
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    @Inject lateinit var voiceSession: VoiceSession
+
     override fun onCreate(savedInstanceState: Bundle?) {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent { ZyraTheme { ZyraNavigation() } }
+    }
+
+    override fun onStop() {
+        voiceSession.stop()
+        super.onStop()
     }
 }
 
