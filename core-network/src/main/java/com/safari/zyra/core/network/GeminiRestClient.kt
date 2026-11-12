@@ -37,7 +37,18 @@ class GeminiRestClient @Inject constructor(
     ): Flow<String> = flow {
         requireCredentials(apiKey, modelId)
         val contents = JSONArray()
-        history.takeLast(20).forEach { turn ->
+        val summary = history.firstOrNull { it.role == "summary" }?.text.orEmpty()
+        var remainingTokens = HISTORY_TOKEN_BUDGET
+        val budgetedTurns = history.asSequence()
+            .filter { it.role != "summary" }
+            .toList()
+            .asReversed()
+            .takeWhile { turn ->
+                val cost = estimateTokens(turn.text)
+                if (cost > remainingTokens) false else { remainingTokens -= cost; true }
+            }
+            .asReversed()
+        budgetedTurns.forEach { turn ->
             contents.put(JSONObject()
                 .put("role", if (turn.role == "assistant" || turn.role == "model") "model" else "user")
                 .put("parts", JSONArray().put(JSONObject().put("text", turn.text))))
@@ -49,8 +60,9 @@ class GeminiRestClient @Inject constructor(
                 .put("data", Base64.encodeToString(it.bytes, Base64.NO_WRAP))))
         }
         contents.put(JSONObject().put("role", "user").put("parts", currentParts))
+        val instructions = if (summary.isBlank()) systemPrompt else "$systemPrompt\\n\\nRolling conversation summary (older turns):\\n$summary"
         val body = JSONObject()
-            .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", systemPrompt))))
+            .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", instructions))))
             .put("contents", contents)
 
         var emittedAnyText = false
@@ -149,6 +161,8 @@ class GeminiRestClient @Inject constructor(
         return "https://generativelanguage.googleapis.com/v1beta/models/$clean:streamGenerateContent?alt=sse"
     }
 
+    private fun estimateTokens(text: String): Int = (text.length + 3) / 4 + 4
+
     private fun mapHttpFailure(code: Int, body: String): GeminiFailure {
         val message = runCatching { JSONObject(body).optJSONObject("error")?.optString("message") }
             .getOrNull().orEmpty()
@@ -163,5 +177,6 @@ class GeminiRestClient @Inject constructor(
         val RETRYABLE_STATUS_CODES = setOf(429, 500, 503)
         val RETRY_DELAYS_MS = longArrayOf(700L, 1_600L)
         const val MAX_RETRIES = 2
+        const val HISTORY_TOKEN_BUDGET = 12_000
     }
 }
