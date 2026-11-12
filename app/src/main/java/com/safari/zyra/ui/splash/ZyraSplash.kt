@@ -8,6 +8,7 @@ import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -18,6 +19,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
@@ -33,6 +37,8 @@ import kotlinx.coroutines.delay
 
 @Composable
 fun ZyraSplash(onFinished: () -> Unit) {
+    var finished by remember { mutableStateOf(false) }
+    val finish = { if (!finished) { finished = true; onFinished() } }
     val reveal = remember { Animatable(0f) }
     val nameAlpha = remember { Animatable(0f) }
     val letterSpace = remember { Animatable(12f) }
@@ -45,9 +51,9 @@ fun ZyraSplash(onFinished: () -> Unit) {
         delay(160)
         tagline.animateTo(1f, tween(420, easing = FastOutSlowInEasing))
         delay(650)
-        onFinished()
+        finish()
     }
-    Box(Modifier.fillMaxSize()) {
+    Box(Modifier.fillMaxSize().clickable { finish() }) {
         Canvas(Modifier.fillMaxSize()) {
             val dust = listOf(
                 .12f to .18f, .82f to .24f, .20f to .72f,
