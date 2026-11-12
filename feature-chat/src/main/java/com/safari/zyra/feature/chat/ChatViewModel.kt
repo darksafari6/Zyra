@@ -48,9 +48,12 @@ class ChatViewModel @Inject constructor(
     init {
         viewModelScope.launch { chatRepository.messages.collect { messages -> mutableState.update { it.copy(messages = messages) } } }
         viewModelScope.launch { settingsRepository.settings.collect { settings -> mutableState.update { it.copy(settings = settings) } } }
+        viewModelScope.launch { settingsRepository.reduceEffects.collect { enabled -> mutableState.update { it.copy(reduceEffects = enabled) } } }
         viewModelScope.launch { apiKeyStore.hasKey.collect { hasKey -> mutableState.update { it.copy(hasApiKey = hasKey) } } }
         viewModelScope.launch { voiceSession.state.collect { voice -> mutableState.update { it.copy(voiceState = voice) } } }
     }
+
+    fun setReduceEffects(enabled: Boolean) { viewModelScope.launch { settingsRepository.setReduceEffects(enabled) } }
 
     fun startVoice() { if (!mutableState.value.isStreaming) voiceSession.startListening() }
     fun stopVoice() = voiceSession.stop()
