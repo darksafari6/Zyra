@@ -62,7 +62,7 @@ class ChatViewModel @Inject constructor(
         mutableState.update { it.copy(voiceState = VoiceState.Error("Microphone access was denied. Enable it in Android Settings to use voice chat.")) }
     }
 
-    fun sendMessage(text: String, imageUri: Uri? = null) {
+    fun sendMessage(text: String, imageUri: Uri? = null, persistUserMessage: Boolean = true) {
         val prompt = text.trim().ifBlank { if (imageUri != null) "Please describe and analyze this image." else "" }
         if (prompt.isBlank() || mutableState.value.isStreaming) return
         if (mutableState.value.voiceState !is VoiceState.Idle) voiceSession.stop()
@@ -72,7 +72,7 @@ class ChatViewModel @Inject constructor(
                 val preparedImage = imageUri?.let { prepareImage(it) }
                 val image = preparedImage?.first
                 val storedImagePath = preparedImage?.second
-                chatRepository.add(ChatMessage(role = "user", text = prompt, imagePath = storedImagePath))
+                if (persistUserMessage) chatRepository.add(ChatMessage(role = "user", text = prompt, imagePath = storedImagePath))
                 val history = chatRepository.recentForPrompt(21).dropLast(1).map { GeminiTurn(it.role, it.text) }
                 val response = StringBuilder()
                 geminiClient.streamReply(
@@ -218,7 +218,11 @@ class ChatViewModel @Inject constructor(
 
     fun regenerateLastReply() {
         val lastUser = mutableState.value.messages.lastOrNull { it.role == "user" } ?: return
-        sendMessage(lastUser.text)
+        viewModelScope.launch {
+            chatRepository.deleteAfter(lastUser.id)
+            val image = lastUser.imagePath?.let { Uri.fromFile(File(it)) }
+            sendMessage(lastUser.text, image, persistUserMessage = false)
+        }
     }
 
     fun clearHistory() {
