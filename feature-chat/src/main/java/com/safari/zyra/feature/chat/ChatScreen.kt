@@ -336,6 +336,9 @@ fun ChatScreen(
             JellyOrb(
                 modifier = Modifier.size(42.dp),
                 enabled = !state.isStreaming && (draft.isNotBlank() || selectedImage != null),
+                contentDescription = "Send message",
+                stateDescription = if (draft.isNotBlank() || selectedImage != null) "Ready to send" else "Nothing to send",
+                reduceEffects = state.reduceEffects || lowPerformance,
                 onClick = {
                     viewModel.sendMessage(draft, selectedImage)
                     draft = ""
@@ -360,7 +363,7 @@ fun ChatScreen(
 
     if (showVoiceMode) {
         Dialog(onDismissRequest = { viewModel.stopVoice(); showVoiceMode = false }, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
-            VoiceModeScreen(state.voiceState, onStop = { viewModel.stopVoice(); showVoiceMode = false }, onDismiss = { viewModel.stopVoice(); showVoiceMode = false })
+            VoiceModeScreen(state.voiceState, reduceEffects = state.reduceEffects || lowPerformance, onStop = { viewModel.stopVoice(); showVoiceMode = false }, onDismiss = { viewModel.stopVoice(); showVoiceMode = false })
         }
     }
 
@@ -508,6 +511,8 @@ private fun ContactDock() {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 JellyOrb(
                     modifier = Modifier.size(46.dp),
+                    contentDescription = item.second,
+                    stateDescription = "Open contact link",
                     onClick = {
                         val urls = listOf(
                             "https://www.tiktok.com/@t_safari",
