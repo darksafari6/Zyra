@@ -5,15 +5,23 @@ import androidx.room.RoomDatabase
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 
-@Database(entities = [ChatMessage::class], version = 2, exportSchema = true)
+@Database(entities = [ChatMessage::class, Conversation::class], version = 3, exportSchema = true)
 abstract class ZyraDatabase : RoomDatabase() {
     abstract fun chatMessageDao(): ChatMessageDao
+    abstract fun conversationDao(): ConversationDao
 
     companion object {
-        /** Migration scaffold: v1 had no timestamp index; preserve all existing messages. */
         val MIGRATION_1_2: Migration = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_chat_messages_timestamp ON chat_messages(timestamp)")
+            }
+        }
+        val MIGRATION_2_3: Migration = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS conversations (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, title TEXT NOT NULL, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL)")
+                db.execSQL("INSERT OR IGNORE INTO conversations (id, title, createdAt, updatedAt) VALUES (1, 'New chat', 0, 0)")
+                db.execSQL("ALTER TABLE chat_messages ADD COLUMN conversation_id INTEGER NOT NULL DEFAULT 1")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_chat_messages_conversation_id_timestamp ON chat_messages(conversation_id, timestamp)")
             }
         }
     }
