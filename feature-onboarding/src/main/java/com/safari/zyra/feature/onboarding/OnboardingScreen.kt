@@ -31,6 +31,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.safari.zyra.core.network.GeminiModelCapability
@@ -70,7 +71,7 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
             1 -> {
                 Text("Create a key in Google AI Studio. Your key stays encrypted on this device.")
                 OutlinedButton(onClick = { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://aistudio.google.com/app/apikey"))) }) { Text("Open Google AI Studio") }
-                OutlinedTextField(apiKey, { apiKey = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Gemini API key") }, singleLine = true)
+                OutlinedTextField(apiKey, { apiKey = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Gemini API key") }, singleLine = true, visualTransformation = PasswordVisualTransformation())
                 Button(onClick = { viewModel.validateAndLoadModels(apiKey) }, enabled = apiKey.isNotBlank() && !state.loading) { Text(if (state.loading) "Validating…" else "Validate key and load models") }
                 state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 if (state.models.isNotEmpty()) Button(onClick = { page++ }) { Text("Continue") }
