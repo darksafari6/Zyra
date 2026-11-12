@@ -27,6 +27,7 @@ import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -42,11 +43,13 @@ class ChatViewModel @Inject constructor(
     private val geminiClient: GeminiClient,
     private val voiceSession: VoiceSession
 ) : ViewModel() {
+    private val activeConversationId = MutableStateFlow(1L)
     private val mutableState = MutableStateFlow(ChatUiState())
     val state: StateFlow<ChatUiState> = mutableState.asStateFlow()
 
     init {
-        viewModelScope.launch { chatRepository.messages.collect { messages -> mutableState.update { it.copy(messages = messages) } } }
+        viewModelScope.launch { activeConversationId.flatMapLatest { chatRepository.observeMessages(it) }.collect { messages -> mutableState.update { it.copy(messages = messages, activeConversationId = activeConversationId.value) } } }
+        viewModelScope.launch { chatRepository.conversations.collect { conversations -> mutableState.update { it.copy(conversations = conversations) } } }
         viewModelScope.launch { settingsRepository.settings.collect { settings -> mutableState.update { it.copy(settings = settings) } } }
         viewModelScope.launch { settingsRepository.reduceEffects.collect { enabled -> mutableState.update { it.copy(reduceEffects = enabled) } } }
         viewModelScope.launch { apiKeyStore.hasKey.collect { hasKey -> mutableState.update { it.copy(hasApiKey = hasKey) } } }
@@ -72,8 +75,8 @@ class ChatViewModel @Inject constructor(
                 val preparedImage = imageUri?.let { prepareImage(it) }
                 val image = preparedImage?.first
                 val storedImagePath = preparedImage?.second
-                if (persistUserMessage) chatRepository.add(ChatMessage(role = "user", text = prompt, imagePath = storedImagePath))
-                val history = chatRepository.recentForPrompt(21).dropLast(1).map { GeminiTurn(it.role, it.text) }
+                if (persistUserMessage) chatRepository.add(ChatMessage(role = "user", text = prompt, imagePath = storedImagePath, conversation_id = activeConversationId.value))
+                val history = chatRepository.recentForPrompt(100, activeConversationId.value).dropLast(1).map { GeminiTurn(it.role, it.text) }
                 val response = StringBuilder()
                 geminiClient.streamReply(
                     apiKey = apiKeyStore.read(),
@@ -88,7 +91,7 @@ class ChatViewModel @Inject constructor(
                 }
                 val finalText = response.toString().trim()
                 if (finalText.isBlank()) error("Zyra received an empty response. Please retry.")
-                chatRepository.add(ChatMessage(role = "assistant", text = finalText))
+                chatRepository.add(ChatMessage(role = "assistant", text = finalText, conversation_id = activeConversationId.value))
             } catch (cancelled: CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {
@@ -219,15 +222,54 @@ class ChatViewModel @Inject constructor(
     fun regenerateLastReply() {
         val lastUser = mutableState.value.messages.lastOrNull { it.role == "user" } ?: return
         viewModelScope.launch {
-            chatRepository.deleteAfter(lastUser.id)
+            chatRepository.deleteAfter(lastUser.id, activeConversationId.value)
             val image = lastUser.imagePath?.let { Uri.fromFile(File(it)) }
             sendMessage(lastUser.text, image, persistUserMessage = false)
         }
     }
 
     fun clearHistory() {
-        viewModelScope.launch { chatRepository.clear(); File(context.filesDir, "zyra_images").deleteRecursively() }
+        viewModelScope.launch { chatRepository.clear(activeConversationId.value); File(context.filesDir, "zyra_images").deleteRecursively() }
     }
+
+    fun newConversation() {
+        viewModelScope.launch {
+            val id = chatRepository.createConversation()
+            activeConversationId.value = id
+            mutableState.update { it.copy(activeConversationId = id, searchResults = emptyList()) }
+        }
+    }
+
+    fun openConversation(id: Long) {
+        activeConversationId.value = id
+        mutableState.update { it.copy(activeConversationId = id, searchResults = emptyList()) }
+    }
+
+    fun renameConversation(id: Long, title: String) {
+        viewModelScope.launch { runCatching { chatRepository.renameConversation(id, title) }.onFailure { failure ->
+            mutableState.update { it.copy(error = failure.message ?: "Could not rename conversation.") }
+        } }
+    }
+
+    fun deleteConversation(id: Long) {
+        viewModelScope.launch {
+            chatRepository.deleteConversation(id)
+            if (activeConversationId.value == id) {
+                val next = mutableState.value.conversations.firstOrNull { it.id != id }?.id
+                if (next != null) openConversation(next) else newConversation()
+            }
+        }
+    }
+
+    fun searchMessages(query: String) {
+        viewModelScope.launch {
+            val results = chatRepository.searchMessages(query)
+            mutableState.update { it.copy(searchResults = results) }
+        }
+    }
+
+    fun clearSearch() = mutableState.update { it.copy(searchResults = emptyList()) }
+
     fun dismissError() = mutableState.update { it.copy(error = null) }
 
     override fun onCleared() {
