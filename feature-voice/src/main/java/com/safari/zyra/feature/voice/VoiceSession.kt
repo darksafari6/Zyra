@@ -76,7 +76,7 @@ class VoiceSession @Inject constructor(
             mutableState.value = VoiceState.Error("I couldn't hear that. Tap the orb and try again.")
             return
         }
-        if (transcript.equals("stop", true) || transcript.equals("stop speaking", true)) {
+        if (isStopCommand(transcript)) {
             tts.stop()
             mutableState.value = VoiceState.Idle
             return
@@ -146,7 +146,7 @@ class VoiceSession @Inject constructor(
             language,
             {},
             { spoken ->
-                if (spoken.trim().equals("stop", true) || spoken.trim().equals("stop speaking", true)) {
+                if (isStopCommand(spoken)) {
                     stopSpeaking()
                 } else if (mutableState.value is VoiceState.Speaking) {
                     bargeInStarted = false
@@ -173,8 +173,14 @@ class VoiceSession @Inject constructor(
 
     private suspend fun stopInternal() {
         speech.cancel()
+        speech.destroy()
         tts.stop()
         responseJob?.cancel()
         mutableState.value = VoiceState.Idle
+    }
+
+    private fun isStopCommand(raw: String): Boolean {
+        val normalized = raw.lowercase().replace(Regex("[^\\\\p{L}\\\\p{N}\\\\s]"), " ").replace(Regex("\\\\s+"), " ").trim()
+        return normalized in setOf("stop", "stop speaking", "cancel", "bas", "bas karo", "ruk jao", "ruko")
     }
 }
