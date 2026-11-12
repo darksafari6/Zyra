@@ -4,7 +4,6 @@ import android.app.Activity
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.content.IntentFilter
 import android.os.Build
 import android.speech.RecognitionSupport
 import android.speech.RecognitionSupportCallback
@@ -50,9 +49,9 @@ class InstalledVoiceLocaleCatalog(
                     null,
                     object : BroadcastReceiver() {
                         override fun onReceive(context: Context?, intent: Intent?) {
-                            val supported = resultExtras(true)
+                            val supported: List<String> = getResultExtras(true)
                                 ?.getStringArrayList(RecognizerIntent.EXTRA_SUPPORTED_LANGUAGES)
-                                .orEmpty()
+                                ?: emptyList()
                             supported.mapTo(locales) { Locale.forLanguageTag(it) }
                             publish()
                         }
