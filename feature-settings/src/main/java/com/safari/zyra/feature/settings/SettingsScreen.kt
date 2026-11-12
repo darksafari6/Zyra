@@ -34,6 +34,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.safari.zyra.core.data.settings.ZyraSettings
 import com.safari.zyra.core.network.GeminiModelCapability
@@ -83,7 +84,7 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, viewModel:
         }
         SettingsSection("Connection") {
             Text(if (state.hasApiKey) "Gemini API key saved securely on this device." else "No API key saved.")
-            OutlinedTextField(key, { key = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Replace Gemini API key") }, singleLine = true)
+            OutlinedTextField(key, { key = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Replace Gemini API key") }, singleLine = true, visualTransformation = PasswordVisualTransformation())
             Button(onClick = { viewModel.saveKey(key); key = "" }, enabled = key.isNotBlank()) { Text("Save key") }
             Button(onClick = viewModel::testConnection, enabled = state.hasApiKey && settings.textModelId.isNotBlank()) { Text("Test Gemini connection") }
             state.testResult?.let { Text(it, color = if (it.startsWith("Connected")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error) }
