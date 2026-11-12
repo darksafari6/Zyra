@@ -17,6 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import com.safari.zyra.core.ui.theme.*
+import com.safari.zyra.core.ui.theme.ZyraTheme
 
 @Composable
 fun ZyraScaffold(modifier: Modifier = Modifier, topBar: @Composable () -> Unit = {}, snackbarHost: @Composable () -> Unit = {}, content: @Composable (PaddingValues) -> Unit) {
@@ -44,7 +45,7 @@ fun ZyraTextField(value: String, onValueChange: (String) -> Unit, label: String,
 }
 @Composable
 fun StatusPill(text: String, color: Color = ZyraColors.cyan, modifier: Modifier = Modifier) {
-    Surface(modifier, color.copy(alpha = .12f), shape = ZyraRadius.pill, contentColor = color) {
+    Surface(modifier = modifier, color = color.copy(alpha = .12f), shape = ZyraRadius.pill, contentColor = color) {
         Text(text, Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
     }
 }
@@ -89,3 +90,5 @@ fun ZyraTopBar(title: String, onBack: (() -> Unit)? = null, actions: @Composable
 @Preview(showBackground = true, backgroundColor = 0xFF05060A) @Composable private fun ErrorPreview() { ZyraTheme { ErrorBanner("Something went wrong", {}) } }
 @Preview(showBackground = true, backgroundColor = 0xFF05060A) @Composable private fun SnackbarPreview() { ZyraTheme { ZyraSnackbarHost(SnackbarHostState()) } }
 @Preview(showBackground = true, backgroundColor = 0xFF05060A) @Composable private fun TopBarPreview() { ZyraTheme { ZyraTopBar("Settings", {}) } }
+
+@Preview(showBackground = true, backgroundColor = 0xFF05060A) @Composable private fun ScaffoldPreview() { ZyraTheme { ZyraScaffold { Text("Scaffold content", Modifier.padding(it), color = ZyraColors.text) } } }
