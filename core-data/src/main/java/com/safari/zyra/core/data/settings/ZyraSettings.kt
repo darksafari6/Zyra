@@ -7,6 +7,7 @@ data class ZyraSettings(
     val persona: String = "Friendly",
     val customPersona: String = "",
     val voiceLanguage: String = "en-US",
+    val voiceName: String = "",
     val voiceSpeed: Float = 1f,
     val voicePitch: Float = 1f,
     val pureBlack: Boolean = false,
