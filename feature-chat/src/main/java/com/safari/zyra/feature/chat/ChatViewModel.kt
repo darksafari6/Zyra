@@ -58,7 +58,7 @@ class ChatViewModel @Inject constructor(
 
     fun setReduceEffects(enabled: Boolean) { viewModelScope.launch { settingsRepository.setReduceEffects(enabled) } }
 
-    fun startVoice() { if (!mutableState.value.isStreaming) voiceSession.startListening() }
+    fun startVoice() { if (!mutableState.value.isStreaming) voiceSession.startListening(activeConversationId.value) }
     fun stopVoice() = voiceSession.stop()
     fun stopSpeaking() = voiceSession.stopSpeaking()
     fun voicePermissionDenied() {
