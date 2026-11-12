@@ -7,6 +7,8 @@ interface ChatRepository {
     val conversations: Flow<List<Conversation>>
     fun observeMessages(conversationId: Long): Flow<List<ChatMessage>>
     suspend fun recentForPrompt(limit: Int = 20, conversationId: Long = 1): List<ChatMessage>
+    suspend fun getConversation(id: Long): Conversation?
+    suspend fun updateSummary(id: Long, summary: String, throughMessageId: Long)
     suspend fun add(message: ChatMessage): Long
     suspend fun createConversation(title: String = "New chat"): Long
     suspend fun renameConversation(id: Long, title: String)
