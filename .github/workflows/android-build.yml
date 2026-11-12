@@ -1,8 +1,6 @@
 name: Android build
 
 on:
-  push:
-    branches: [main, piece-5-hardening]
   pull_request:
     branches: [main]
 
