@@ -20,6 +20,7 @@ import kotlinx.coroutines.launch
 data class SettingsUiState(
     val settings: ZyraSettings = ZyraSettings(),
     val hasApiKey: Boolean = false,
+    val reduceEffects: Boolean = false,
     val models: List<GeminiModel> = emptyList(),
     val messages: List<ChatMessage> = emptyList(),
     val loadingModels: Boolean = false,
@@ -39,6 +40,7 @@ class SettingsViewModel @Inject constructor(
 
     init {
         viewModelScope.launch { settingsRepository.settings.collect { value -> mutableState.update { it.copy(settings = value) } } }
+        viewModelScope.launch { settingsRepository.reduceEffects.collect { value -> mutableState.update { it.copy(reduceEffects = value) } } }
         viewModelScope.launch { keyStore.hasKey.collect { value -> mutableState.update { it.copy(hasApiKey = value) } } }
         viewModelScope.launch { chatRepository.messages.collect { value -> mutableState.update { it.copy(messages = value) } } }
     }
