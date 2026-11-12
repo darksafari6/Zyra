@@ -27,6 +27,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import com.safari.zyra.core.data.SettingsRepository
+import com.safari.zyra.core.data.settings.ZyraSettings
 import com.safari.zyra.core.ui.theme.ZyraColors
 import com.safari.zyra.core.ui.theme.ZyraTheme
 import com.safari.zyra.feature.chat.ChatScreen
@@ -47,7 +48,10 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
-        setContent { ZyraTheme { ZyraNavigation(settingsRepository) } }
+        setContent {
+            val appearance by settingsRepository.settings.collectAsState(initial = ZyraSettings())
+            ZyraTheme(pureBlack = appearance.pureBlack) { ZyraNavigation(settingsRepository) }
+        }
     }
 
     override fun onStop() {
