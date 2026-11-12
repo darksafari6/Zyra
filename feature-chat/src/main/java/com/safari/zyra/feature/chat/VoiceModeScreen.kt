@@ -2,9 +2,7 @@ package com.safari.zyra.feature.chat
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -30,11 +28,17 @@ import com.safari.zyra.feature.voice.VoiceState
 
 @Composable
 fun VoiceModeScreen(state: VoiceState, reduceEffects: Boolean = false, onStop: () -> Unit, onDismiss: () -> Unit) {
-    val transition = rememberInfiniteTransition(label = "voiceBackdrop")
-    val animatedOffset by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(7000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "gradient")
-    val offset = if (reduceEffects) 0f else animatedOffset
-    val animatedWave by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(550, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "wave")
-    val wave = if (reduceEffects) 0f else animatedWave
+    val backdrop = remember { Animatable(0f) }
+    val waveform = remember { Animatable(0f) }
+    LaunchedEffect(reduceEffects) {
+        if (reduceEffects) { backdrop.snapTo(0f); waveform.snapTo(0f) }
+        else while (true) {
+            backdrop.animateTo(1f, tween(7000, easing = FastOutSlowInEasing)); backdrop.animateTo(0f, tween(7000, easing = FastOutSlowInEasing))
+            waveform.animateTo(1f, tween(550, easing = FastOutSlowInEasing)); waveform.animateTo(0f, tween(550, easing = FastOutSlowInEasing))
+        }
+    }
+    val offset = backdrop.value
+    val wave = waveform.value
     val amplitude = (state as? VoiceState.Listening)?.amplitude?.coerceIn(0f, 1f) ?: 0f
     val status = when(state) {
         is VoiceState.Listening -> "Listening"
