@@ -22,6 +22,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.res.stringResource
 import com.safari.zyra.core.ui.brand.JellyOrb
 import com.safari.zyra.core.ui.theme.ZyraColors
 import com.safari.zyra.core.ui.theme.ZyraTheme
@@ -46,7 +47,7 @@ fun VoiceModeScreen(state: VoiceState, onStop: () -> Unit, onDismiss: () -> Unit
         }) {
         Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text("ZYRA VOICE", color = ZyraColors.cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 3.sp)
+                Text(stringResource(R.string.voice_title), color = ZyraColors.cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 3.sp)
                 Spacer(Modifier.height(12.dp))
                 Text(status.uppercase(), color = ZyraColors.text, style = MaterialTheme.typography.titleLarge)
             }
@@ -81,8 +82,8 @@ fun VoiceModeScreen(state: VoiceState, onStop: () -> Unit, onDismiss: () -> Unit
                 Text(caption, color = ZyraColors.text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.fillMaxWidth().semantics { contentDescription = "Live voice captions: $caption" })
             }
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Button(onClick = onStop, colors = ButtonDefaults.buttonColors(containerColor = ZyraColors.magenta), modifier = Modifier.fillMaxWidth().heightIn(min=52.dp)) { Text("Stop voice", color = ZyraColors.text) }
-                TextButton(onClick = onDismiss) { Text("Swipe down or tap to close", color = ZyraColors.muted) }
+                Button(onClick = onStop, colors = ButtonDefaults.buttonColors(containerColor = ZyraColors.magenta), modifier = Modifier.fillMaxWidth().heightIn(min=52.dp)) { Text(stringResource(R.string.voice_stop), color = ZyraColors.text) }
+                TextButton(onClick = onDismiss) { Text(stringResource(R.string.voice_dismiss), color = ZyraColors.muted) }
             }
         }
     }
