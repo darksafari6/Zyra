@@ -19,6 +19,7 @@
         </intent>
     </queries>
     <application
+        android:enableOnBackInvokedCallback="true"
         android:name=".ZyraApplication"
         android:allowBackup="false"
         android:icon="@mipmap/ic_zyra"
