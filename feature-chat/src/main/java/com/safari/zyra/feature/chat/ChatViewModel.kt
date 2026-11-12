@@ -79,6 +79,21 @@ class ChatViewModel @Inject constructor(
                 val conversationId = activeConversationId.value
                 val recent = chatRepository.recentForPrompt(500, conversationId)
                 val conversation = chatRepository.getConversation(conversationId)
+                if (persistUserMessage && mutableState.value.settings.autoTitle &&
+                    recent.size == 1 && conversation?.title == "New chat") {
+                    runCatching {
+                        val title = StringBuilder()
+                        geminiClient.streamReply(
+                            apiKey = apiKeyStore.read(),
+                            modelId = mutableState.value.settings.textModelId,
+                            systemPrompt = "Create a short conversation title of at most six words. Return only the title.",
+                            history = emptyList(),
+                            userText = prompt
+                        ).collect { title.append(it) }
+                        title.toString().trim().trim('"', '\'').take(80).takeIf { it.isNotBlank() }
+                            ?.let { chatRepository.renameConversation(conversationId, it) }
+                    }
+                }
                 val notYetSummarized = recent.filter { it.id > (conversation?.summaryThroughMessageId ?: 0L) }
                 val olderTurns = notYetSummarized.dropLast(24)
                 var rollingSummary = conversation?.summary.orEmpty()
