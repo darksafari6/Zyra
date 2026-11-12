@@ -35,6 +35,7 @@ class ZyraTextToSpeech @Inject constructor(@ApplicationContext context: Context)
 
     override fun onInit(status: Int) {
         ready = status == TextToSpeech.SUCCESS
+        if (!ready) synchronized(pending) { pending.clear() }
         engine?.setOnUtteranceProgressListener(object : UtteranceProgressListener() {
             override fun onStart(utteranceId: String?) = Unit
             override fun onDone(utteranceId: String?) = utteranceFinished()
@@ -64,8 +65,15 @@ class ZyraTextToSpeech @Inject constructor(@ApplicationContext context: Context)
         if (!requestAudioFocus()) return
         if (currentLanguage != request.language) {
             val locale = Locale.forLanguageTag(request.language)
-            if (tts.isLanguageAvailable(locale) >= TextToSpeech.LANG_AVAILABLE) tts.language = locale
-            currentLanguage = request.language
+            val availability = tts.isLanguageAvailable(locale)
+            if (availability >= TextToSpeech.LANG_AVAILABLE) {
+                tts.language = locale
+                currentLanguage = request.language
+            } else {
+                val fallback = Locale.getDefault()
+                if (tts.isLanguageAvailable(fallback) >= TextToSpeech.LANG_AVAILABLE) tts.language = fallback
+                currentLanguage = fallback.toLanguageTag()
+            }
         }
         tts.setSpeechRate(request.speed.coerceIn(0.65f, 1.5f))
         tts.setPitch(request.pitch.coerceIn(0.7f, 1.4f))
