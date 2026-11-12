@@ -15,16 +15,16 @@ class RoomChatRepository @Inject constructor(
     override fun observeMessages(conversationId: Long): Flow<List<ChatMessage>> = dao.observeAll(conversationId)
     override suspend fun recentForPrompt(limit: Int, conversationId: Long): List<ChatMessage> = dao.latest(limit, conversationId).asReversed()
     override suspend fun getConversation(id: Long): Conversation? = conversationDao.getById(id)
-    override suspend fun updateSummary(id: Long, summary: String, throughMessageId: Long) = conversationDao.updateSummary(id, summary, throughMessageId)
+    override suspend fun updateSummary(id: Long, summary: String, throughMessageId: Long) = conversationDao.updateSummary(id, summary, throughMessageId, System.currentTimeMillis())
     override suspend fun add(message: ChatMessage): Long {
         val id = dao.insert(message)
-        conversationDao.touch(message.conversation_id)
+        conversationDao.touch(message.conversation_id, System.currentTimeMillis())
         return id
     }
     override suspend fun createConversation(title: String): Long = conversationDao.insert(Conversation(title = title))
     override suspend fun renameConversation(id: Long, title: String) {
         require(title.isNotBlank()) { "Conversation title cannot be empty." }
-        conversationDao.rename(id, title.trim().take(80))
+        conversationDao.rename(id, title.trim().take(80), System.currentTimeMillis())
     }
     override suspend fun deleteConversation(id: Long) {
         dao.deleteConversationMessages(id)
