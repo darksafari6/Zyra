@@ -61,7 +61,7 @@ fun VoiceModeScreen(state: VoiceState, reduceEffects: Boolean = false, onStop: (
         }) {
         Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(R.string.voice_title), color = ZyraColors.cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 3.sp)
+                Text(stringResource(R.string.voice_title), color = ZyraColors.cyan, fontSize = MaterialTheme.typography.labelLarge.fontSize, fontWeight = FontWeight.Bold, letterSpacing = 3.sp)
                 Spacer(Modifier.height(12.dp))
                 Text(status.uppercase(), color = ZyraColors.text, style = MaterialTheme.typography.titleLarge)
             }
