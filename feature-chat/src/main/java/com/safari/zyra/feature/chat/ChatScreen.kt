@@ -173,7 +173,7 @@ fun ChatScreen(
         }
 
         LazyColumn(
-            modifier = Modifier.weight(1f).fillMaxWidth(),
+            modifier = Modifier.weight(1f).fillMaxWidth().widthIn(max = 760.dp).wrapContentWidth(Alignment.CenterHorizontally),
             state = listState,
             verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
@@ -278,6 +278,7 @@ fun ChatScreen(
                 },
                 enabled = !state.isStreaming,
                 contentDescription = "Voice input",
+                reduceEffects = state.reduceEffects,
                 stateDescription = when (state.voiceState) {
                     is VoiceState.Listening -> "Listening"
                     is VoiceState.Thinking -> "Thinking"
@@ -392,7 +393,7 @@ private fun MessageBubble(isUser: Boolean, text: String, imagePath: String?, str
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
         Surface(
-            color = if (isUser) ZyraColors.surfaceElevated else Color(0xCC101522),
+            color = if (isUser) ZyraColors.surfaceElevated else ZyraColors.glass,
             shape = RoundedCornerShape(
                 topStart = 18.dp, topEnd = 18.dp,
                 bottomStart = if (isUser) 18.dp else 5.dp,
@@ -402,7 +403,7 @@ private fun MessageBubble(isUser: Boolean, text: String, imagePath: String?, str
                 .border(1.dp, if (isUser) ZyraColors.cyan.copy(alpha = .32f) else ZyraColors.border, RoundedCornerShape(18.dp))
         ) {
             Column(Modifier.padding(horizontal = 14.dp, vertical = 11.dp)) {
-                if (imagePath != null) AsyncImage(model = File(imagePath), contentDescription = "Attached image", modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp).clip(RoundedCornerShape(12.dp)).padding(bottom = 7.dp))
+                if (imagePath != null) AsyncImage(model = File(imagePath), contentDescription = "Attached image", modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp).clip(RoundedCornerShape(12.dp)).clickable { /* image viewer is opened from the image preview action */ }.padding(bottom = 7.dp))
                 SelectionContainer { ZyraMarkdown(text) }
                 if (streaming) Text("●", color = ZyraColors.cyan, fontSize = MaterialTheme.typography.labelSmall.fontSize)
             }
