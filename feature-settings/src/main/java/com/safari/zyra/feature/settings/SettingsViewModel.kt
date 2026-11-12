@@ -80,7 +80,7 @@ class SettingsViewModel @Inject constructor(
     }
     fun deleteKey() { keyStore.clear(); mutableState.update { it.copy(hasApiKey = false, saved = true) } }
 
-    fun save(value: ZyraSettings, reduceEffects: Boolean) {
+    fun save(value: ZyraSettings, reduceEffects: Boolean, onComplete: () -> Unit) {
         viewModelScope.launch {
             settingsRepository.updateTextModelId(value.textModelId)
             settingsRepository.updateLiveModelId(value.liveModelId)
@@ -91,6 +91,7 @@ class SettingsViewModel @Inject constructor(
             settingsRepository.setPureBlack(value.pureBlack)
             settingsRepository.setAutoTitle(value.autoTitle)
             mutableState.update { it.copy(saved = true, error = null) }
+            onComplete()
         }
     }
 
