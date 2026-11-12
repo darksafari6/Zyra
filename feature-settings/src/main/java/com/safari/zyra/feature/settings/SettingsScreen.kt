@@ -37,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.safari.zyra.core.data.settings.ZyraSettings
 import com.safari.zyra.core.network.GeminiModelCapability
+import com.safari.zyra.feature.voice.InstalledVoiceLocaleCatalog
 import java.util.Locale
 
 @Composable
@@ -53,14 +54,13 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, viewModel:
     var voiceExpanded by remember { mutableStateOf(false) }
     var personaExpanded by remember { mutableStateOf(false) }
     var confirmClear by remember { mutableStateOf(false) }
-    val ttsLanguages = remember { mutableStateOf(setOf(Locale.getDefault())) }
+    val installedLocales = remember { mutableStateOf(listOf(Locale.getDefault())) }
     val ttsVoices = remember { mutableStateOf(emptySet<Voice>()) }
     val ttsRef = remember { mutableStateOf<TextToSpeech?>(null) }
     val tts = remember {
         TextToSpeech(context) { status ->
             if (status == TextToSpeech.SUCCESS) {
                 ttsRef.value?.let { engine ->
-                    ttsLanguages.value = engine.availableLanguages ?: setOf(Locale.getDefault())
                     ttsVoices.value = engine.voices ?: emptySet()
                 }
             }
@@ -68,7 +68,11 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, viewModel:
     }
     SideEffect { ttsRef.value = tts }
     DisposableEffect(tts) { onDispose { tts.stop(); tts.shutdown() } }
-    val languages = ttsLanguages.value.sortedBy { it.displayName }.ifEmpty { listOf(Locale.US) }
+    DisposableEffect(context) {
+        val catalog = InstalledVoiceLocaleCatalog(context) { installedLocales.value = it }
+        onDispose { catalog.close() }
+    }
+    val languages = installedLocales.value
     val voices = ttsVoices.value.sortedBy { it.name }
     val personas = listOf("Friendly", "Professional", "Roman-Urdu buddy", "Custom")
 
