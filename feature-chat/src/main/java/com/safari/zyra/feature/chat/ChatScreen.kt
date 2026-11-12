@@ -65,6 +65,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -120,6 +121,7 @@ fun ChatScreen(
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
     var showAttachMenu by remember { mutableStateOf(false) }
     val listState = rememberLazyListState()
+    val isAtBottom by remember { derivedStateOf { listState.layoutInfo.totalItemsCount == 0 || listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index == listState.layoutInfo.totalItemsCount - 1 } }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { selectedImage = it }
     val cameraPreview = rememberLauncherForActivityResult(ActivityResultContracts.TakePicturePreview()) { bitmap ->
         if (bitmap != null) {
@@ -235,6 +237,10 @@ fun ChatScreen(
                     }
                 }
             }
+        }
+
+        if (!isAtBottom) {
+            TextButton(onClick = { kotlinx.coroutines.MainScope().launch { val last = listState.layoutInfo.totalItemsCount - 1; if (last >= 0) listState.animateScrollToItem(last) } }, modifier = Modifier.align(Alignment.End)) { Text("↓ Latest message", color = ZyraColors.cyan) }
         }
 
         if (selectedImage != null) {
