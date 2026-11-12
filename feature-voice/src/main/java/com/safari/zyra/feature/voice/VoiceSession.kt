@@ -21,7 +21,6 @@ import kotlinx.coroutines.launch
 
 @Singleton
 class VoiceSession @Inject constructor(
-    private val recorder: AudioRecorder,
     private val speech: SpeechToText,
     private val tts: ZyraTextToSpeech,
     private val settings: SettingsRepository,
@@ -33,7 +32,6 @@ class VoiceSession @Inject constructor(
     private val mutableState = MutableStateFlow<VoiceState>(VoiceState.Idle)
     val state: StateFlow<VoiceState> = mutableState.asStateFlow()
     private var responseJob: Job? = null
-    private var amplitudeJob: Job? = null
     private var sentenceBuffer = StringBuilder()
     private var bargeInStarted = false
 
@@ -46,27 +44,22 @@ class VoiceSession @Inject constructor(
             stopInternal()
             val language = settings.settings.first().voiceLanguage
             try {
-                recorder.start { speech.stopListening() }
                 mutableState.value = VoiceState.Listening()
-                amplitudeJob = launch {
-                    recorder.amplitude.collect { amplitude ->
-                        val current = mutableState.value
-                        if (current is VoiceState.Listening) mutableState.value = current.copy(amplitude = amplitude)
-                    }
-                }
                 speech.start(
                     languageTag = language,
                     onPartial = { text ->
                         val current = mutableState.value
                         if (current is VoiceState.Listening) mutableState.value = current.copy(transcript = text)
                     },
-                    onFinal = { text -> scope.launch { recorder.stop(); amplitudeJob?.cancel(); handleTranscript(text) } },
+                    onFinal = { text -> scope.launch { handleTranscript(text) } },
                     onFailure = { message ->
                         scope.launch {
-                            recorder.stop()
-                            amplitudeJob?.cancel()
                             if (mutableState.value !is VoiceState.Speaking) mutableState.value = VoiceState.Error(message)
                         }
+                    },
+                    onRms = { amplitude ->
+                        val current = mutableState.value
+                        if (current is VoiceState.Listening) mutableState.value = current.copy(amplitude = amplitude)
                     }
                 )
             } catch (failure: SecurityException) {
@@ -173,7 +166,6 @@ class VoiceSession @Inject constructor(
         tts.stop()
         responseJob?.cancel()
         speech.cancel()
-        scope.launch { recorder.stop() }
         mutableState.value = VoiceState.Idle
     }
 
@@ -183,8 +175,6 @@ class VoiceSession @Inject constructor(
         speech.cancel()
         tts.stop()
         responseJob?.cancel()
-        amplitudeJob?.cancel()
-        recorder.stop()
         mutableState.value = VoiceState.Idle
     }
 }
