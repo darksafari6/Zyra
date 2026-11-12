@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.safeDrawingPadding
@@ -62,7 +63,7 @@ fun SettingsScreen(
     val scope = rememberCoroutineScope()
 
     Column(
-        Modifier.fillMaxSize().safeDrawingPadding().imePadding().background(ZyraColors.background).verticalScroll(rememberScrollState()).padding(20.dp),
+        Modifier.fillMaxSize().safeDrawingPadding().imePadding().background(ZyraColors.background).verticalScroll(rememberScrollState()).widthIn(max = 720.dp).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(13.dp)
     ) {
         TextButton(onClick = onBack) { Text(stringResource(R.string.settings_back), color = ZyraColors.cyan) }
