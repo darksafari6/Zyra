@@ -22,6 +22,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -110,6 +111,14 @@ fun SettingsScreen(
             minLines = 4,
             colors = zyraFieldColors()
         )
+        Text("Accessibility & performance", color = Color(0xFF00E5FF), fontSize = 13.sp)
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+            Column(Modifier.weight(1f)) {
+                Text("Reduce effects", color = Color(0xFFEAF0FF), fontSize = 14.sp)
+                Text("Use simpler motion and fewer visual effects.", color = Color(0xFF9BA7C2), fontSize = 12.sp)
+            }
+            Switch(checked = state.reduceEffects, onCheckedChange = viewModel::setReduceEffects)
+        }
         Text("Voice preferences", color = Color(0xFF00E5FF), fontSize = 13.sp)
         OutlinedTextField(
             value = voiceLanguage,
