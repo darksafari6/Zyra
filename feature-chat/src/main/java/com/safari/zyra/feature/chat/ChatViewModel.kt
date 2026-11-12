@@ -84,11 +84,11 @@ class ChatViewModel @Inject constructor(
                 var rollingSummary = conversation?.summary.orEmpty()
                 var summarizedThrough = conversation?.summaryThroughMessageId ?: 0L
                 if (olderTurns.isNotEmpty()) {
-                    val addition = olderTurns.joinToString("\\n") { turn ->
+                    val addition = olderTurns.joinToString("\n") { turn ->
                         val attachmentNote = if (turn.imagePath != null) " [Earlier image attachment omitted]" else ""
                         "${turn.role}: ${turn.text.take(360)}$attachmentNote"
                     }
-                    rollingSummary = (rollingSummary + "\\n" + addition).trim().takeLast(6_000)
+                    rollingSummary = (rollingSummary + "\n" + addition).trim().takeLast(6_000)
                     summarizedThrough = olderTurns.last().id
                     chatRepository.updateSummary(conversationId, rollingSummary, summarizedThrough)
                 }
