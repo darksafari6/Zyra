@@ -35,7 +35,7 @@ class VoiceSession @Inject constructor(
     private var sentenceBuffer = StringBuilder()
     private var bargeInStarted = false
 
-    fun startListening() {
+    fun startListening(conversationId: Long = 1) {
         if (!speech.isAvailable()) {
             mutableState.value = VoiceState.Error("Speech recognition is unavailable. Install or enable a speech recognition service.")
             return
@@ -51,7 +51,7 @@ class VoiceSession @Inject constructor(
                         val current = mutableState.value
                         if (current is VoiceState.Listening) mutableState.value = current.copy(transcript = text)
                     },
-                    onFinal = { text -> scope.launch { handleTranscript(text) } },
+                    onFinal = { text -> scope.launch { handleTranscript(text, conversationId) } },
                     onFailure = { message ->
                         scope.launch {
                             if (mutableState.value !is VoiceState.Speaking) mutableState.value = VoiceState.Error(message)
@@ -70,7 +70,7 @@ class VoiceSession @Inject constructor(
         }
     }
 
-    private suspend fun handleTranscript(raw: String) {
+    private suspend fun handleTranscript(raw: String, conversationId: Long) {
         val transcript = raw.trim()
         if (transcript.isBlank()) {
             mutableState.value = VoiceState.Error("I couldn't hear that. Tap the orb and try again.")
@@ -84,14 +84,14 @@ class VoiceSession @Inject constructor(
             return
         }
         mutableState.value = VoiceState.Thinking(transcript)
-        chat.add(ChatMessage(role = "user", text = transcript))
+        chat.add(ChatMessage(role = "user", text = transcript, conversation_id = conversationId))
         val config = settings.settings.first()
         sentenceBuffer = StringBuilder()
         bargeInStarted = false
         responseJob = scope.launch {
             val response = StringBuilder()
             try {
-                val history = chat.recentForPrompt(21).dropLast(1).map { GeminiTurn(it.role, it.text) }
+                val history = chat.recentForPrompt(100, conversationId).dropLast(1).map { GeminiTurn(it.role, it.text) }
                 gemini.streamReply(
                     apiKey = keys.read(),
                     modelId = config.textModelId,
@@ -109,7 +109,7 @@ class VoiceSession @Inject constructor(
                 while (tts.isSpeaking()) delay(120)
                 speech.cancel()
                 speech.destroy()
-                chat.add(ChatMessage(role = "assistant", text = answer))
+                chat.add(ChatMessage(role = "assistant", text = answer, conversation_id = conversationId))
                 mutableState.value = VoiceState.Idle
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
