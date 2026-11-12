@@ -141,7 +141,7 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, viewModel:
             }
             OutlinedButton(onClick = { confirmClear = true }) { Text("Clear chat history") }
             OutlinedButton(onClick = viewModel::deleteKey, enabled = state.hasApiKey) { Text("Delete API key") }
-            OutlinedButton(onClick = onRerunOnboarding) { Text("Run onboarding again") }
+            OutlinedButton(onClick = { viewModel.completeOnboardingAgain(); onRerunOnboarding() }) { Text("Run onboarding again") }
             if (confirmClear) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = { viewModel.clearHistory(); confirmClear = false }) { Text("Confirm clear") }
