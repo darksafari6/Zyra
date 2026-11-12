@@ -13,7 +13,7 @@ interface SettingsRepository {
     suspend fun updateLiveModelId(value: String)
     suspend fun updateSystemPrompt(value: String)
     suspend fun updatePersona(preset: String, custom: String)
-    suspend fun updateVoiceSettings(language: String, speed: Float, pitch: Float)
+    suspend fun updateVoiceSettings(language: String, speed: Float, pitch: Float, voiceName: String = "")
     suspend fun setPureBlack(enabled: Boolean)
     suspend fun setAutoTitle(enabled: Boolean)
 }
