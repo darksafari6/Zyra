@@ -15,6 +15,7 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
+import androidx.compose.ui.unit.dp
 import kotlinx.coroutines.delay
 
 @Composable
@@ -43,7 +44,7 @@ fun JellyOrb(
         onClickLabel = "Activate voice assistant"
     ) else Modifier
     Box(
-        modifier = modifier.defaultMinSize(minWidth = androidx.compose.ui.unit.dp(48f), minHeight = androidx.compose.ui.unit.dp(48f))
+        modifier = modifier.defaultMinSize(minWidth = 48.dp, minHeight = androidx.compose.ui.unit.dp(48f))
             .graphicsLayer { scaleX = sx; scaleY = sy; translationY = if (idle && !pressed) -1.5f else 0f }
             .then(interaction)
             .semantics { this.contentDescription = contentDescription; this.stateDescription = stateDescription },
