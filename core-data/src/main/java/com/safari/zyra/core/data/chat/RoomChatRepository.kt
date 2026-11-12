@@ -13,5 +13,6 @@ class RoomChatRepository @Inject constructor(
         dao.latest(limit).asReversed()
     override suspend fun add(message: ChatMessage): Long = dao.insert(message)
     override suspend fun delete(messageId: Long) = dao.deleteById(messageId)
+    override suspend fun deleteAfter(messageId: Long) = dao.deleteAfter(messageId)
     override suspend fun clear() = dao.clear()
 }
