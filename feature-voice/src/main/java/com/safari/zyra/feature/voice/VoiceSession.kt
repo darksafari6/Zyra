@@ -78,6 +78,8 @@ class VoiceSession @Inject constructor(
         }
         if (isStopCommand(transcript)) {
             tts.stop()
+            speech.cancel()
+            speech.destroy()
             mutableState.value = VoiceState.Idle
             return
         }
@@ -105,6 +107,8 @@ class VoiceSession @Inject constructor(
                 val answer = response.toString().trim()
                 if (answer.isBlank()) error("Zyra received an empty response.")
                 while (tts.isSpeaking()) delay(120)
+                speech.cancel()
+                speech.destroy()
                 chat.add(ChatMessage(role = "assistant", text = answer))
                 mutableState.value = VoiceState.Idle
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
@@ -166,6 +170,7 @@ class VoiceSession @Inject constructor(
         tts.stop()
         responseJob?.cancel()
         speech.cancel()
+        speech.destroy()
         mutableState.value = VoiceState.Idle
     }
 
