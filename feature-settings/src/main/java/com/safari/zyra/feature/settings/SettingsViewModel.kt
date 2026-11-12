@@ -1,0 +1,99 @@
+package com.safari.zyra.feature.settings
+
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.safari.zyra.core.data.SettingsRepository
+import com.safari.zyra.core.data.chat.ChatMessage
+import com.safari.zyra.core.data.chat.ChatRepository
+import com.safari.zyra.core.data.security.ApiKeyStore
+import com.safari.zyra.core.data.settings.ZyraSettings
+import com.safari.zyra.core.network.GeminiModel
+import com.safari.zyra.core.network.GeminiModelCatalog
+import dagger.hilt.android.lifecycle.HiltViewModel
+import javax.inject.Inject
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+
+data class SettingsUiState(
+    val settings: ZyraSettings = ZyraSettings(),
+    val hasApiKey: Boolean = false,
+    val models: List<GeminiModel> = emptyList(),
+    val messages: List<ChatMessage> = emptyList(),
+    val loadingModels: Boolean = false,
+    val error: String? = null,
+    val saved: Boolean = false
+)
+
+@HiltViewModel
+class SettingsViewModel @Inject constructor(
+    private val settingsRepository: SettingsRepository,
+    private val keyStore: ApiKeyStore,
+    private val catalog: GeminiModelCatalog,
+    private val chatRepository: ChatRepository
+) : ViewModel() {
+    private val mutableState = MutableStateFlow(SettingsUiState())
+    val state: StateFlow<SettingsUiState> = mutableState.asStateFlow()
+
+    init {
+        viewModelScope.launch { settingsRepository.settings.collect { value -> mutableState.update { it.copy(settings = value) } } }
+        viewModelScope.launch { keyStore.hasKey.collect { value -> mutableState.update { it.copy(hasApiKey = value) } } }
+        viewModelScope.launch { chatRepository.messages.collect { value -> mutableState.update { it.copy(messages = value) } } }
+    }
+
+    fun loadModels() {
+        if (mutableState.value.loadingModels) return
+        viewModelScope.launch {
+            mutableState.update { it.copy(loadingModels = true, error = null) }
+            try {
+                val result = catalog.list(keyStore.read())
+                mutableState.update { it.copy(models = result, loadingModels = false) }
+            } catch (failure: Exception) {
+                mutableState.update { it.copy(loadingModels = false, error = failure.message ?: "Could not load models.") }
+            }
+        }
+    }
+
+    fun saveKey(value: String) {
+        try { keyStore.write(value); mutableState.update { it.copy(error = null, saved = true) } }
+        catch (failure: Exception) { mutableState.update { it.copy(error = failure.message, saved = false) } }
+    }
+    fun deleteKey() { keyStore.clear(); mutableState.update { it.copy(hasApiKey = false, saved = true) } }
+
+    fun save(value: ZyraSettings, reduceEffects: Boolean) {
+        viewModelScope.launch {
+            settingsRepository.updateTextModelId(value.textModelId)
+            settingsRepository.updateLiveModelId(value.liveModelId)
+            settingsRepository.updateSystemPrompt(value.systemPrompt)
+            settingsRepository.updatePersona(value.persona, value.customPersona)
+            settingsRepository.updateVoiceSettings(value.voiceLanguage, value.voiceSpeed, value.voicePitch)
+            settingsRepository.setReduceEffects(reduceEffects)
+            settingsRepository.setPureBlack(value.pureBlack)
+            settingsRepository.setAutoTitle(value.autoTitle)
+            mutableState.update { it.copy(saved = true, error = null) }
+        }
+    }
+
+    fun clearHistory() { viewModelScope.launch { chatRepository.clear(); mutableState.update { it.copy(messages = emptyList()) } } }
+    fun completeOnboardingAgain() { viewModelScope.launch { settingsRepository.setOnboardingCompleted(false) } }
+
+    fun exportMarkdown(): String = buildString {
+        appendLine("# Zyra chat export")
+        mutableState.value.messages.forEach { message ->
+            appendLine()
+            appendLine("## ${message.role.replaceFirstChar(Char::uppercase)}")
+            appendLine(message.text)
+            if (message.imagePath != null) appendLine("[Image attachment stored locally]")
+        }
+    }
+
+    fun exportJson(): String = org.json.JSONArray().apply {
+        mutableState.value.messages.forEach { message ->
+            put(org.json.JSONObject().put("id", message.id).put("role", message.role)
+                .put("text", message.text).put("timestamp", message.timestamp)
+                .put("imageAttached", message.imagePath != null))
+        }
+    }.toString(2)
+}
