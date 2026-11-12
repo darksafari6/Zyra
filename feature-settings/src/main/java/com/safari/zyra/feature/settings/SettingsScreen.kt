@@ -163,7 +163,7 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, viewModel:
             OutlinedButton(onClick = { openUrl(context, "https://github.com/darksafari6/Zyra") }) { Text("Source and licences") }
             OutlinedButton(onClick = { openUrl(context, "https://github.com/darksafari6/Zyra/issues/new") }) { Text("Contact / report an issue") }
         }
-        Button(onClick = { viewModel.save(settings, reduceEffects); onBack() }, modifier = Modifier.fillMaxWidth()) { Text("Save settings") }
+        Button(onClick = { viewModel.save(settings, reduceEffects, onBack) }, modifier = Modifier.fillMaxWidth()) { Text("Save settings") }
         Spacer(Modifier.padding(bottom = 16.dp))
     }
 }
