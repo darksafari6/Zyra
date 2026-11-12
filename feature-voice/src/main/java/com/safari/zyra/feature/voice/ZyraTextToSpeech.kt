@@ -48,10 +48,10 @@ class ZyraTextToSpeech @Inject constructor(@ApplicationContext context: Context)
         }
     }
 
-    fun speak(sentence: String, languageTag: String, speed: Float, pitch: Float) {
+    fun speak(sentence: String, languageTag: String, speed: Float, pitch: Float, voiceName: String = "") {
         val cleanText = SpeechTextSanitizer.sanitize(sentence)
         if (cleanText.isBlank()) return
-        val request = SpeechRequest(cleanText, languageTag.ifBlank { "en-US" }, speed, pitch)
+        val request = SpeechRequest(cleanText, languageTag.ifBlank { "en-US" }, speed, pitch, voiceName)
         if (!ready) {
             synchronized(pending) { pending.addLast(request) }
             return
@@ -75,6 +75,7 @@ class ZyraTextToSpeech @Inject constructor(@ApplicationContext context: Context)
                 currentLanguage = fallback.toLanguageTag()
             }
         }
+        tts.voices?.firstOrNull { it.name == request.voiceName }?.let(tts::setVoice)
         tts.setSpeechRate(request.speed.coerceIn(0.65f, 1.5f))
         tts.setPitch(request.pitch.coerceIn(0.7f, 1.4f))
         val utteranceId = "zyra-" + System.nanoTime()
@@ -149,5 +150,5 @@ class ZyraTextToSpeech @Inject constructor(@ApplicationContext context: Context)
         ready = false
     }
 
-    private data class SpeechRequest(val text: String, val language: String, val speed: Float, val pitch: Float)
+    private data class SpeechRequest(val text: String, val language: String, val speed: Float, val pitch: Float, val voiceName: String)
 }
