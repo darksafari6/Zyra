@@ -40,8 +40,8 @@
     <string name="settings_clear_key">کی صاف کریں</string>
     <string name="settings_text_model">ٹیکسٹ ماڈل آئی ڈی</string>
     <string name="settings_text_model_hint">دستیاب Gemini ماڈل آئی ڈی درج کریں</string>
-    <string name="settings_live_model">لائیو ماڈل آئی ڈی (پیس 7 کے لیے)</string>
-    <string name="settings_live_model_hint">Live API ترتیب دیتے وقت درج کریں</string>
+    <string name="settings_live_model">لائیو ماڈل آئی ڈی</string>
+    <string name="settings_live_model_hint">Gemini Live کی حمایت کرنے والا ماڈل منتخب کریں</string>
     <string name="settings_personality">زائرا کی سسٹم شخصیت</string>
     <string name="settings_language">بولنے کی زبان (BCP-47)</string>
     <string name="settings_language_hint">en-US, ur-PK, hi-IN</string>
