@@ -11,7 +11,8 @@ class RoomChatRepository @Inject constructor(
 ) : ChatRepository {
     override val messages: Flow<List<ChatMessage>> = dao.observeAll(1)
     override val conversations: Flow<List<Conversation>> = conversationDao.observeAll()
-    override suspend fun recentForPrompt(limit: Int): List<ChatMessage> = dao.latest(limit, 1).asReversed()
+    override fun observeMessages(conversationId: Long): Flow<List<ChatMessage>> = dao.observeAll(conversationId)
+    override suspend fun recentForPrompt(limit: Int, conversationId: Long): List<ChatMessage> = dao.latest(limit, conversationId).asReversed()
     override suspend fun add(message: ChatMessage): Long = dao.insert(message)
     override suspend fun createConversation(title: String): Long = conversationDao.insert(Conversation(title = title))
     override suspend fun renameConversation(id: Long, title: String) {
@@ -25,6 +26,6 @@ class RoomChatRepository @Inject constructor(
     override suspend fun searchMessages(query: String): List<ChatMessage> =
         if (query.isBlank()) emptyList() else dao.search(query.trim())
     override suspend fun delete(messageId: Long) = dao.deleteById(messageId)
-    override suspend fun deleteAfter(messageId: Long) = dao.deleteAfter(messageId, 1)
-    override suspend fun clear() = dao.clear(1)
+    override suspend fun deleteAfter(messageId: Long, conversationId: Long) = dao.deleteAfter(messageId, conversationId)
+    override suspend fun clear(conversationId: Long) = dao.clear(conversationId)
 }
