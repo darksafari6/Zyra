@@ -25,7 +25,7 @@ class InstalledVoiceLocaleCatalog(
 
     init {
         tts = TextToSpeech(context) { status ->
-            if (status == TextToSpeech.SUCCESS) {
+            if (status == TextToSpeech.SUCCESS) mainExecutor.execute {
                 tts?.availableLanguages.orEmpty().forEach(locales::add)
                 publish()
             }
