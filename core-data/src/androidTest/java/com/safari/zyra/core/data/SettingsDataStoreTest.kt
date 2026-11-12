@@ -28,8 +28,8 @@ class SettingsDataStoreTest {
         assertEquals("chosen-text-model", settings.textModelId)
         assertEquals("ur-PK", settings.voiceLanguage)
         assertEquals("installed-voice", settings.voiceName)
-        assertEquals(1.1f, settings.voiceSpeed)
-        assertEquals(0.9f, settings.voicePitch)
+        assertEquals(1.1f, settings.voiceSpeed, 0.001f)
+        assertEquals(0.9f, settings.voicePitch, 0.001f)
         assertEquals(ZyraSettings.DEFAULT_SYSTEM_PROMPT, settings.systemPrompt)
     }
 }
