@@ -28,7 +28,6 @@ import com.safari.zyra.feature.chat.ChatScreen
 import com.safari.zyra.feature.chat.SettingsScreen
 import com.safari.zyra.ui.splash.ZyraSplash
 import dagger.hilt.android.AndroidEntryPoint
-import kotlinx.coroutines.delay
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
@@ -49,10 +48,6 @@ private object ZyraRoutes {
 private fun ZyraNavigation() {
     val navController = rememberNavController()
     var introComplete by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) {
-        delay(2_500)
-        introComplete = true
-    }
     AnimatedContent(
         modifier = Modifier.fillMaxSize().background(Color(0xFF05060A)),
         targetState = introComplete,
