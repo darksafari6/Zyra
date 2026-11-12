@@ -141,6 +141,7 @@ fun SettingsScreen(
         ) {
             if (state.testingConnection) Text("Testing…") else Text("Test Gemini connection")
         }
+        state.error?.let { Text(it, color = Color(0xFFFFA0A0), fontSize = 12.sp) }
         state.testResult?.let { Text(it, color = if (it.startsWith("Connected")) Color(0xFF72E7BE) else Color(0xFFFFA0A0), fontSize = 12.sp) }
 
         Spacer(Modifier.height(5.dp))
