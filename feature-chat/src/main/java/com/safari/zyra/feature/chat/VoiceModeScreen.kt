@@ -32,9 +32,9 @@ fun VoiceModeScreen(state: VoiceState, reduceEffects: Boolean = false, onStop: (
     val waveform = remember { Animatable(0f) }
     LaunchedEffect(reduceEffects) {
         if (reduceEffects) { backdrop.snapTo(0f); waveform.snapTo(0f) }
-        else while (true) {
-            backdrop.animateTo(1f, tween(7000, easing = FastOutSlowInEasing)); backdrop.animateTo(0f, tween(7000, easing = FastOutSlowInEasing))
-            waveform.animateTo(1f, tween(550, easing = FastOutSlowInEasing)); waveform.animateTo(0f, tween(550, easing = FastOutSlowInEasing))
+        else kotlinx.coroutines.coroutineScope {
+            launch { while (true) { backdrop.animateTo(1f, tween(7000, easing = FastOutSlowInEasing)); backdrop.animateTo(0f, tween(7000, easing = FastOutSlowInEasing)) } }
+            launch { while (true) { waveform.animateTo(1f, tween(550, easing = FastOutSlowInEasing)); waveform.animateTo(0f, tween(550, easing = FastOutSlowInEasing)) } }
         }
     }
     val offset = backdrop.value
