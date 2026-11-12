@@ -78,8 +78,10 @@ class ZyraTextToSpeech @Inject constructor(@ApplicationContext context: Context)
         tts.setSpeechRate(request.speed.coerceIn(0.65f, 1.5f))
         tts.setPitch(request.pitch.coerceIn(0.7f, 1.4f))
         val utteranceId = "zyra-" + System.nanoTime()
-        if (tts.speak(request.text, TextToSpeech.QUEUE_ADD, null, utteranceId) == TextToSpeech.SUCCESS) {
-            activeUtterances.incrementAndGet()
+        activeUtterances.incrementAndGet()
+        if (tts.speak(request.text, TextToSpeech.QUEUE_ADD, null, utteranceId) != TextToSpeech.SUCCESS) {
+            activeUtterances.updateAndGet { count -> (count - 1).coerceAtLeast(0) }
+            if (activeUtterances.get() == 0) abandonAudioFocus()
         }
     }
 
