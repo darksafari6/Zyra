@@ -42,7 +42,7 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch { settingsRepository.settings.collect { value -> mutableState.update { it.copy(settings = value) } } }
         viewModelScope.launch { settingsRepository.reduceEffects.collect { value -> mutableState.update { it.copy(reduceEffects = value) } } }
         viewModelScope.launch { keyStore.hasKey.collect { value -> mutableState.update { it.copy(hasApiKey = value) } } }
-        viewModelScope.launch { chatRepository.messages.collect { value -> mutableState.update { it.copy(messages = value) } } }
+        viewModelScope.launch { chatRepository.allMessages.collect { value -> mutableState.update { it.copy(messages = value) } } }
     }
 
     fun loadModels() {
@@ -78,7 +78,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun clearHistory() { viewModelScope.launch { chatRepository.clear(); mutableState.update { it.copy(messages = emptyList()) } } }
+    fun clearHistory() { viewModelScope.launch { chatRepository.clearAll(); mutableState.update { it.copy(messages = emptyList()) } } }
     fun completeOnboardingAgain() { viewModelScope.launch { settingsRepository.setOnboardingCompleted(false) } }
 
     fun exportMarkdown(): String = buildString {
