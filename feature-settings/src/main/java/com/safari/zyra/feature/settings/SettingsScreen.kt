@@ -81,6 +81,8 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, viewModel:
             Text(if (state.hasApiKey) "Gemini API key saved securely on this device." else "No API key saved.")
             OutlinedTextField(key, { key = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Replace Gemini API key") }, singleLine = true)
             Button(onClick = { viewModel.saveKey(key); key = "" }, enabled = key.isNotBlank()) { Text("Save key") }
+            Button(onClick = viewModel::testConnection, enabled = state.hasApiKey && settings.textModelId.isNotBlank()) { Text("Test Gemini connection") }
+            state.testResult?.let { Text(it, color = if (it.startsWith("Connected")) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.error) }
             state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         }
         SettingsSection("Models") {
@@ -133,6 +135,7 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, viewModel:
         SettingsSection("Appearance") {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Reduce effects"); Switch(reduceEffects, { reduceEffects = it }) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Pure black background"); Switch(settings.pureBlack, { settings = settings.copy(pureBlack = it) }) }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Auto-title conversations (experimental)"); Switch(settings.autoTitle, { settings = settings.copy(autoTitle = it) }) }
         }
         SettingsSection("Privacy and data") {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
