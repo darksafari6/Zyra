@@ -214,6 +214,13 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    fun deleteMessage(messageId: Long) { viewModelScope.launch { chatRepository.delete(messageId) } }
+
+    fun regenerateLastReply() {
+        val lastUser = mutableState.value.messages.lastOrNull { it.role == "user" } ?: return
+        sendMessage(lastUser.text)
+    }
+
     fun clearHistory() {
         viewModelScope.launch { chatRepository.clear(); File(context.filesDir, "zyra_images").deleteRecursively() }
     }
