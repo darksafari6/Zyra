@@ -144,12 +144,16 @@ class ChatViewModel @Inject constructor(
     }
 
     fun saveApiKey(value: String) {
-        if (value.isNotBlank()) apiKeyStore.write(value)
-        mutableState.update { it.copy(hasApiKey = apiKeyStore.hasKey.value, testResult = null) }
+        try {
+            if (value.isNotBlank()) apiKeyStore.write(value)
+            mutableState.update { it.copy(hasApiKey = apiKeyStore.hasKey.value, testResult = null, error = null) }
+        } catch (failure: Exception) {
+            mutableState.update { it.copy(hasApiKey = apiKeyStore.hasKey.value, error = failure.message ?: "Could not securely save the API key.") }
+        }
     }
     fun clearApiKey() {
         apiKeyStore.clear()
-        mutableState.update { it.copy(hasApiKey = false, testResult = null) }
+        mutableState.update { it.copy(hasApiKey = false, testResult = null, error = null) }
     }
     fun saveSettings(textModelId: String, liveModelId: String, systemPrompt: String, voiceLanguage: String, voiceSpeed: Float, voicePitch: Float) {
         viewModelScope.launch {
