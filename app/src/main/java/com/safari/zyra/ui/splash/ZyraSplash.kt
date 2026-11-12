@@ -31,6 +31,7 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
 import com.safari.zyra.core.ui.brand.JellyOrb
 import com.safari.zyra.core.ui.brand.ZyraLogo
 import kotlinx.coroutines.delay
@@ -84,7 +85,7 @@ fun ZyraSplash(onFinished: () -> Unit) {
                 ZyraLogo(progress = reveal.value, modifier = Modifier.size(180.dp))
             }
             Text(
-                "ZYRA",
+                stringResource(com.safari.zyra.R.string.splash_name),
                 modifier = Modifier.alpha(nameAlpha.value),
                 style = TextStyle(
                     color = ZyraColors.text,
@@ -94,7 +95,7 @@ fun ZyraSplash(onFinished: () -> Unit) {
                 )
             )
             Text(
-                "by Safari",
+                stringResource(com.safari.zyra.R.string.splash_by),
                 modifier = Modifier.alpha(tagline.value),
                 style = TextStyle(color = ZyraColors.cyan, fontSize = MaterialTheme.typography.bodyMedium.fontSize, letterSpacing = 2.sp)
             )
