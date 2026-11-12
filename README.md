@@ -76,7 +76,7 @@ Changes currently staged on the `piece-5-hardening` branch:
 - Keystore recovery on devices with invalidated or unavailable Android Keystore keys.
 
 
-## Piece 6 — UI core update (partial implementation)
+## Piece 6 — UI core update (implementation in progress)
 
 ### Added in this pass
 - Centralized dark-glass palette tokens in `ZyraColors`, plus spacing, radius and motion-duration tokens.
@@ -87,17 +87,38 @@ Changes currently staged on the `piece-5-hardening` branch:
 - Replaced SDK-only performance classification with `ActivityManager.isLowRamDevice` and memory-class-based tiers.
 
 ### Not yet implemented
-- Custom OFL font files are not bundled yet; the type scale currently uses the platform default font family.
-- Existing ChatScreen, SettingsScreen, splash and contact dock still contain hardcoded colors and text sizes; migration to tokens is incomplete.
-- GlassSurface currently uses a translucent solid fallback with gradient border; the API 31+ localized blur path is not implemented.
-- Full voice-mode destination/animations, AGSL background, lifecycle frame pausing and swipe-dismiss are not implemented.
-- Markdown AST renderer, message action menu, date/time labels, image viewer, corrected auto-scroll, suggestion chips, camera attach, IME send and animated list polish remain outstanding.
-- Predictive back, container-transform navigation, tappable splash skip, complete English/Urdu string extraction, RTL validation and tablet/foldable width constraints remain outstanding.
+- Custom OFL display/body font binaries are not bundled yet; the type scale currently uses the platform sans-serif family.
+- Chat, Settings, splash, contact dock and the logo palette now use shared color tokens and typography sizes. Some literal copy remains and is being moved to resources.
+- GlassSurface has a low-RAM solid fallback, gradient border and a small API 31+ blurred glow. A true backdrop blur is not implemented; Compose's content blur is deliberately not applied to readable text.
+- Added a full-screen voice mode overlay with amplitude-reactive orb, thinking ring, animated speaking bars, live captions, stop control and swipe-down dismissal. The background is an animated Compose gradient; the API 33+ AGSL RuntimeShader path and explicit lifecycle pause wiring remain outstanding.
+- Replaced inline regex formatting with a block-based Markdown renderer for headings, bullets, numbered items, fenced code/copy, links and simple tables. Added copy/share/select/delete/regenerate actions, timestamps, pinch-zoom image viewer, a single auto-scroll effect, scroll-to-latest, empty-state suggestion chips, gallery/camera attach, IME Send and animated message items. Calendar date-group separators are not yet added.
+- Enabled Android predictive-back callbacks, added fade/scale chat-settings navigation transitions, tappable splash skip, initial English/Urdu string resources, and constrained chat/settings widths for larger displays. Full string extraction and RTL/landscape/foldable validation remain outstanding.
 - Component previews are source-defined; they have not been rendered or visually verified in Android Studio.
 
 ### Dependencies
-- No new runtime dependency was added. The existing Compose UI tooling-preview/tooling catalog entries are now enabled in `core-ui` for previews.
+- No new runtime dependency was added. Existing Compose UI tooling-preview/tooling catalog entries are enabled in `core-ui` and `feature-chat` for previews.
 
 ### Verification and device checks
 - `gradle :app:assembleDebug` has not been run in this environment. Do not treat this branch as build-verified until the GitHub Actions run passes.
 - Real-device checks still required: TalkBack activation/state announcements, 48 dp target sizing, reduce-effects persistence, low-RAM effect selection, insets/IME, RTL Urdu, landscape and large-screen layouts, voice lifecycle, animation scaling and API 28/31/33+ rendering.
+
+
+### Piece 6 — screen-by-screen change log
+
+| Screen / area | Before | Current update |
+|---|---|---|
+| Chat | Hardcoded dark colors, competing scroll effects, regex-only inline formatting | Shared color/type tokens, one scroll effect, Markdown blocks, message actions, timestamps, image zoom, camera/gallery menu, suggestion chips and IME Send |
+| Settings | Hardcoded styles; reduce-effects preference was hidden | Shared tokens, responsive width, localized key labels and visible persisted Reduce effects switch |
+| Voice | Voice activity appeared only as chat bubbles | Full-screen voice overlay with amplitude orb, thinking ring, speaking waveform, captions, stop and swipe-down dismiss |
+| Splash | Fixed timed intro and hardcoded palette | Token palette, tap-to-skip and localized brand labels |
+| Contact dock / brand | Hardcoded palette and generic orb semantics | Token palette and explicit TalkBack descriptions |
+| Core UI | Default typography and no reusable surface primitives | Tokens and reusable components with Compose previews |
+
+### Known gaps before Piece 6 can be called complete
+
+- Bundle two actual OFL font files (display and body) and wire them into the typography families.
+- Implement a true backdrop blur path for small API 31+ surfaces; current blur is only a decorative glow, with a solid BASIC-tier fallback.
+- Add API 33+ AGSL RuntimeShader background and explicit lifecycle pause/resume behavior.
+- Finish localization of every user-visible string and validate Urdu RTL, landscape, tablet and foldable layouts on devices/emulators.
+- Add true calendar-day separators; timestamps currently show date and time together.
+- Render and visually inspect all previews, and test animation scale / TalkBack / voice / camera on physical devices.
