@@ -8,7 +8,7 @@ on:
       - "v*"
 
 permissions:
-  contents: read
+  contents: write
 
 concurrency:
   group: android-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
@@ -39,6 +39,20 @@ jobs:
           gradle-version: "8.13"
       - name: Bootstrap wrapper JAR
         run: gradle wrapper --gradle-version 8.13 --distribution-type bin
+      - name: Commit generated Gradle wrapper JAR
+        if: github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add gradle/wrapper/gradle-wrapper.jar
+          if git diff --cached --quiet; then
+            echo "Gradle wrapper JAR is already committed."
+          else
+            git commit -m "build: commit Gradle 8.13 wrapper JAR"
+            git push origin "HEAD:$HEAD_REF"
+          fi
       - name: Upload Gradle 8.13 wrapper JAR
         uses: actions/upload-artifact@v4
         with:
