@@ -2,6 +2,7 @@ package com.safari.zyra.feature.settings
 
 import android.content.Intent
 import android.speech.tts.TextToSpeech
+import android.speech.tts.Voice
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -24,6 +25,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,22 +44,32 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, viewModel:
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
     var settings by remember(state.settings) { mutableStateOf(state.settings) }
-    var reduceEffects by remember { mutableStateOf(false) }
+    var reduceEffects by remember(state.reduceEffects) { mutableStateOf(state.reduceEffects) }
     var key by remember { mutableStateOf("") }
     var modelSearch by remember { mutableStateOf("") }
     var textExpanded by remember { mutableStateOf(false) }
     var liveExpanded by remember { mutableStateOf(false) }
     var languageExpanded by remember { mutableStateOf(false) }
+    var voiceExpanded by remember { mutableStateOf(false) }
     var personaExpanded by remember { mutableStateOf(false) }
     var confirmClear by remember { mutableStateOf(false) }
     val ttsLanguages = remember { mutableStateOf(setOf(Locale.getDefault())) }
+    val ttsVoices = remember { mutableStateOf(emptySet<Voice>()) }
+    val ttsRef = remember { mutableStateOf<TextToSpeech?>(null) }
     val tts = remember {
         TextToSpeech(context) { status ->
-            if (status == TextToSpeech.SUCCESS) ttsLanguages.value = tts?.availableLanguages ?: setOf(Locale.getDefault())
+            if (status == TextToSpeech.SUCCESS) {
+                ttsRef.value?.let { engine ->
+                    ttsLanguages.value = engine.availableLanguages ?: setOf(Locale.getDefault())
+                    ttsVoices.value = engine.voices ?: emptySet()
+                }
+            }
         }
     }
+    SideEffect { ttsRef.value = tts }
     DisposableEffect(tts) { onDispose { tts.stop(); tts.shutdown() } }
     val languages = ttsLanguages.value.sortedBy { it.displayName }.ifEmpty { listOf(Locale.US) }
+    val voices = ttsVoices.value.sortedBy { it.name }
     val personas = listOf("Friendly", "Professional", "Roman-Urdu buddy", "Custom")
 
     Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) {
@@ -69,7 +81,7 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, viewModel:
             Text(if (state.hasApiKey) "Gemini API key saved securely on this device." else "No API key saved.")
             OutlinedTextField(key, { key = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Replace Gemini API key") }, singleLine = true)
             Button(onClick = { viewModel.saveKey(key); key = "" }, enabled = key.isNotBlank()) { Text("Save key") }
-            Text(state.error.orEmpty(), color = MaterialTheme.colorScheme.error)
+            state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         }
         SettingsSection("Models") {
             Button(onClick = viewModel::loadModels, enabled = state.hasApiKey && !state.loadingModels) { Text(if (state.loadingModels) "Loading…" else "Refresh model catalog") }
@@ -102,12 +114,17 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, viewModel:
             DropdownMenu(languageExpanded, { languageExpanded = false }) {
                 languages.forEach { locale -> DropdownMenuItem(text = { Text("${locale.displayName} (${locale.toLanguageTag()})") }, onClick = { settings = settings.copy(voiceLanguage = locale.toLanguageTag()); languageExpanded = false }) }
             }
+            OutlinedButton(onClick = { voiceExpanded = true }, enabled = voices.isNotEmpty()) { Text("Voice: ${voices.firstOrNull { it.name == settings.voiceName }?.name ?: settings.voiceName.ifBlank { "System default" }}") }
+            DropdownMenu(voiceExpanded, { voiceExpanded = false }) {
+                voices.forEach { voice -> DropdownMenuItem(text = { Text("${voice.name} — ${voice.locale.displayName}") }, onClick = { settings = settings.copy(voiceName = voice.name); voiceExpanded = false }) }
+            }
             Text("Speech speed: ${"%.2f".format(settings.voiceSpeed)}×")
             Slider(settings.voiceSpeed, { settings = settings.copy(voiceSpeed = it) }, valueRange = .65f..1.5f)
             Text("Pitch: ${"%.2f".format(settings.voicePitch)}×")
             Slider(settings.voicePitch, { settings = settings.copy(voicePitch = it) }, valueRange = .7f..1.4f)
             Button(onClick = {
                 tts.language = Locale.forLanguageTag(settings.voiceLanguage)
+                voices.firstOrNull { it.name == settings.voiceName }?.let(tts::setVoice)
                 tts.setSpeechRate(settings.voiceSpeed)
                 tts.setPitch(settings.voicePitch)
                 tts.speak("Hello, I am Zyra. Your voice settings are ready.", TextToSpeech.QUEUE_FLUSH, null, "zyra-voice-test")
@@ -137,7 +154,7 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, viewModel:
             val version = remember { runCatching { context.packageManager.getPackageInfo(context.packageName, 0).versionName }.getOrNull() ?: "Unknown" }
             Text("Version $version")
             OutlinedButton(onClick = { openUrl(context, "https://github.com/darksafari6/Zyra") }) { Text("Source and licences") }
-            OutlinedButton(onClick = { openUrl(context, "mailto:safari@example.com") }) { Text("Contact") }
+            OutlinedButton(onClick = { openUrl(context, "https://github.com/darksafari6/Zyra/issues/new") }) { Text("Contact / report an issue") }
         }
         Button(onClick = { viewModel.save(settings, reduceEffects); onBack() }, modifier = Modifier.fillMaxWidth()) { Text("Save settings") }
         Spacer(Modifier.padding(bottom = 16.dp))
