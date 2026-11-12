@@ -15,7 +15,11 @@ import org.junit.Test
 class GeminiRestClientTest {
     @Test
     fun parsesServerSentEventTextChunks() = runBlocking {
-        val payload = """data: {"candidates":[{"content":{"parts":[{"text":"Hello"}]}}]}\n\ndata: {"candidates":[{"content":{"parts":[{"text":" world"}]}}]}\n\n"""
+        val payload = """data: {"candidates":[{"content":{"parts":[{"text":"Hello"}]}}]}
+
+data: {"candidates":[{"content":{"parts":[{"text":" world"}]}}]}
+
+"""
         val engine = MockEngine {
             respond(
                 content = ByteReadChannel(payload),
