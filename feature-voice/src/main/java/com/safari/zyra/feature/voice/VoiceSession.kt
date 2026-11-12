@@ -120,9 +120,9 @@ class VoiceSession @Inject constructor(
                 ).collect { chunk ->
                     response.append(chunk)
                     mutableState.value = VoiceStateMachine.reduce(mutableState.value, VoiceStateMachine.Event.Speak(transcript, response.toString()))
-                    enqueueSentences(chunk, config.voiceLanguage, config.voiceSpeed, config.voicePitch)
+                    enqueueSentences(chunk, config.voiceLanguage, config.voiceSpeed, config.voicePitch, config.voiceName)
                 }
-                flushSentence(config.voiceLanguage, config.voiceSpeed, config.voicePitch)
+                flushSentence(config.voiceLanguage, config.voiceSpeed, config.voicePitch, config.voiceName)
                 val answer = response.toString().trim()
                 if (answer.isBlank()) error("Zyra received an empty response.")
                 while (tts.isSpeaking()) delay(120)
@@ -138,7 +138,7 @@ class VoiceSession @Inject constructor(
         }
     }
 
-    private fun enqueueSentences(chunk: String, language: String, speed: Float, pitch: Float) {
+    private fun enqueueSentences(chunk: String, language: String, speed: Float, pitch: Float, voiceName: String) {
         sentenceBuffer.append(chunk)
         val all = sentenceBuffer.toString()
         val boundary = Regex("""[.!?。！？](?:["'”’)]*)\s+""")
@@ -146,7 +146,7 @@ class VoiceSession @Inject constructor(
         boundary.findAll(all).forEach { match ->
             val sentence = all.substring(consumed, match.range.last + 1).trim()
             if (sentence.isNotBlank()) {
-                tts.speak(sentence, language, speed, pitch)
+                tts.speak(sentence, language, speed, pitch, voiceName)
                 armBargeIn(language)
             }
             consumed = match.range.last + 1
@@ -154,7 +154,7 @@ class VoiceSession @Inject constructor(
         if (consumed > 0) sentenceBuffer = StringBuilder(all.substring(consumed))
     }
 
-    private fun flushSentence(language: String, speed: Float, pitch: Float) {
+    private fun flushSentence(language: String, speed: Float, pitch: Float, voiceName: String) {
         sentenceBuffer.toString().trim().takeIf { it.isNotBlank() }?.let { sentence ->
             tts.speak(sentence, language, speed, pitch)
             armBargeIn(language)
