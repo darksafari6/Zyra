@@ -37,35 +37,35 @@ class VoiceSession @Inject constructor(
 
     fun startListening(conversationId: Long = 1) {
         if (!speech.isAvailable()) {
-            mutableState.value = VoiceState.Error("Speech recognition is unavailable. Install or enable a speech recognition service.")
+            mutableState.value = VoiceStateMachine.reduce(mutableState.value, VoiceStateMachine.Event.Fail("Speech recognition is unavailable. Install or enable a speech recognition service."))
             return
         }
         scope.launch {
             stopInternal()
             val language = settings.settings.first().voiceLanguage
             try {
-                mutableState.value = VoiceState.Listening()
+                mutableState.value = VoiceStateMachine.reduce(mutableState.value, VoiceStateMachine.Event.StartListening)
                 speech.start(
                     languageTag = language,
                     onPartial = { text ->
                         val current = mutableState.value
-                        if (current is VoiceState.Listening) mutableState.value = current.copy(transcript = text)
+                        if (current is VoiceState.Listening) mutableState.value = VoiceStateMachine.reduce(current, VoiceStateMachine.Event.PartialTranscript(text))
                     },
                     onFinal = { text -> scope.launch { handleTranscript(text, conversationId) } },
                     onFailure = { message ->
                         scope.launch {
-                            if (mutableState.value !is VoiceState.Speaking) mutableState.value = VoiceState.Error(message)
+                            if (mutableState.value !is VoiceState.Speaking) mutableState.value = VoiceStateMachine.reduce(mutableState.value, VoiceStateMachine.Event.Fail(message))
                         }
                     },
                     onRms = { amplitude ->
                         val current = mutableState.value
-                        if (current is VoiceState.Listening) mutableState.value = current.copy(amplitude = amplitude)
+                        if (current is VoiceState.Listening) mutableState.value = VoiceStateMachine.reduce(current, VoiceStateMachine.Event.Amplitude(amplitude))
                     }
                 )
             } catch (failure: SecurityException) {
-                mutableState.value = VoiceState.Error("Microphone permission is required.")
+                mutableState.value = VoiceStateMachine.reduce(mutableState.value, VoiceStateMachine.Event.Fail("Microphone permission is required."))
             } catch (failure: Exception) {
-                mutableState.value = VoiceState.Error(failure.message ?: "Could not start the microphone.")
+                mutableState.value = VoiceStateMachine.reduce(mutableState.value, VoiceStateMachine.Event.Fail(failure.message ?: "Could not start the microphone."))
             }
         }
     }
@@ -73,17 +73,17 @@ class VoiceSession @Inject constructor(
     private suspend fun handleTranscript(raw: String, conversationId: Long) {
         val transcript = raw.trim()
         if (transcript.isBlank()) {
-            mutableState.value = VoiceState.Error("I couldn't hear that. Tap the orb and try again.")
+            mutableState.value = VoiceStateMachine.reduce(mutableState.value, VoiceStateMachine.Event.Fail("I couldn't hear that. Tap the orb and try again."))
             return
         }
         if (isStopCommand(transcript)) {
             tts.stop()
             speech.cancel()
             speech.destroy()
-            mutableState.value = VoiceState.Idle
+            mutableState.value = VoiceStateMachine.reduce(mutableState.value, VoiceStateMachine.Event.Stop)
             return
         }
-        mutableState.value = VoiceState.Thinking(transcript)
+        mutableState.value = VoiceStateMachine.reduce(mutableState.value, VoiceStateMachine.Event.StartThinking(transcript))
         chat.add(ChatMessage(role = "user", text = transcript, conversation_id = conversationId))
         val config = settings.settings.first()
         sentenceBuffer = StringBuilder()
@@ -100,7 +100,7 @@ class VoiceSession @Inject constructor(
                     userText = transcript
                 ).collect { chunk ->
                     response.append(chunk)
-                    mutableState.value = VoiceState.Speaking(transcript, response.toString())
+                    mutableState.value = VoiceStateMachine.reduce(mutableState.value, VoiceStateMachine.Event.Speak(transcript, response.toString()))
                     enqueueSentences(chunk, config.voiceLanguage, config.voiceSpeed, config.voicePitch)
                 }
                 flushSentence(config.voiceLanguage, config.voiceSpeed, config.voicePitch)
@@ -114,7 +114,7 @@ class VoiceSession @Inject constructor(
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
             } catch (failure: Exception) {
-                mutableState.value = VoiceState.Error(failure.message ?: "Voice reply failed.")
+                mutableState.value = VoiceStateMachine.reduce(mutableState.value, VoiceStateMachine.Event.Fail(failure.message ?: "Voice reply failed."))
             }
         }
     }
