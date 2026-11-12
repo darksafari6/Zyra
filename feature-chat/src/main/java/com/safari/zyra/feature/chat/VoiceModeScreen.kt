@@ -29,9 +29,11 @@ import com.safari.zyra.core.ui.theme.ZyraTheme
 import com.safari.zyra.feature.voice.VoiceState
 
 @Composable
-fun VoiceModeScreen(state: VoiceState, onStop: () -> Unit, onDismiss: () -> Unit) {
+fun VoiceModeScreen(state: VoiceState, reduceEffects: Boolean = false, onStop: () -> Unit, onDismiss: () -> Unit) {
     val transition = rememberInfiniteTransition(label = "voiceBackdrop")
-    val offset by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(7000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "gradient")
+    val animatedOffset by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(7000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "gradient")
+    val offset = if (reduceEffects) 0f else animatedOffset
+    val wave by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(550, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "wave")
     val amplitude = (state as? VoiceState.Listening)?.amplitude?.coerceIn(0f, 1f) ?: 0f
     val status = when(state) {
         is VoiceState.Listening -> "Listening"
@@ -55,6 +57,7 @@ fun VoiceModeScreen(state: VoiceState, onStop: () -> Unit, onDismiss: () -> Unit
                 JellyOrb(
                     modifier = Modifier.size(220.dp),
                     enabled = status == "Listening",
+                    reduceEffects = reduceEffects,
                     contentDescription = "Voice assistant orb",
                     stateDescription = status
                 ) {
@@ -65,7 +68,7 @@ fun VoiceModeScreen(state: VoiceState, onStop: () -> Unit, onDismiss: () -> Unit
                         when (state) {
                             is VoiceState.Thinking -> CircularProgressIndicator(color = ZyraColors.violet, strokeWidth = 4.dp, modifier = Modifier.size(172.dp))
                             is VoiceState.Speaking -> Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
-                                repeat(7) { i -> Box(Modifier.width(5.dp).height((18 + ((i*13)%34)).dp).background(ZyraColors.magenta, CircleShape)) }
+                                repeat(7) { i -> Box(Modifier.width(5.dp).height((16 + ((i*13)%28) + (wave * if (i % 2 == 0) 16 else 5)).dp).background(ZyraColors.magenta, CircleShape)) }
                             }
                             else -> Box(Modifier.size(112.dp).background(ZyraColors.cyan.copy(alpha=.18f), CircleShape))
                         }
@@ -90,4 +93,4 @@ fun VoiceModeScreen(state: VoiceState, onStop: () -> Unit, onDismiss: () -> Unit
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF05060A)
-@Composable private fun VoiceModePreview() { ZyraTheme { VoiceModeScreen(VoiceState.Idle, {}, {}) } }
+@Composable private fun VoiceModePreview() { ZyraTheme { VoiceModeScreen(VoiceState.Idle, reduceEffects = true, onStop = {}, onDismiss = {}) } }
