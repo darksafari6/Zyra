@@ -9,10 +9,10 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface ChatMessageDao {
     @Query("SELECT * FROM chat_messages WHERE conversation_id = :conversationId ORDER BY timestamp ASC, id ASC")
-    fun observeAll(conversationId: Long = 1): Flow<List<ChatMessage>>
+    fun observeAll(conversationId: Long): Flow<List<ChatMessage>>
 
     @Query("SELECT * FROM chat_messages WHERE conversation_id = :conversationId ORDER BY timestamp DESC, id DESC LIMIT :limit")
-    suspend fun latest(limit: Int, conversationId: Long = 1): List<ChatMessage>
+    suspend fun latest(limit: Int, conversationId: Long): List<ChatMessage>
 
     @Query("SELECT * FROM chat_messages WHERE text LIKE '%' || :query || '%' ORDER BY timestamp DESC LIMIT 100")
     suspend fun search(query: String): List<ChatMessage>
@@ -24,10 +24,10 @@ interface ChatMessageDao {
     suspend fun deleteById(messageId: Long)
 
     @Query("DELETE FROM chat_messages WHERE id > :messageId AND conversation_id = :conversationId")
-    suspend fun deleteAfter(messageId: Long, conversationId: Long = 1)
+    suspend fun deleteAfter(messageId: Long, conversationId: Long)
 
     @Query("DELETE FROM chat_messages WHERE conversation_id = :conversationId")
-    suspend fun clear(conversationId: Long = 1)
+    suspend fun clear(conversationId: Long)
 
     @Query("DELETE FROM chat_messages WHERE conversation_id = :conversationId")
     suspend fun deleteConversationMessages(conversationId: Long)
