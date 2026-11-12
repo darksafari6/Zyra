@@ -18,7 +18,7 @@ abstract class ZyraDatabase : RoomDatabase() {
         }
         val MIGRATION_2_3: Migration = object : Migration(2, 3) {
             override fun migrate(db: SupportSQLiteDatabase) {
-                db.execSQL("CREATE TABLE IF NOT EXISTS conversations (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, title TEXT NOT NULL, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS conversations (id INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, title TEXT NOT NULL, createdAt INTEGER NOT NULL, updatedAt INTEGER NOT NULL, summary TEXT NOT NULL DEFAULT '', summaryThroughMessageId INTEGER NOT NULL DEFAULT 0)")
                 db.execSQL("INSERT OR IGNORE INTO conversations (id, title, createdAt, updatedAt) VALUES (1, 'New chat', 0, 0)")
                 db.execSQL("ALTER TABLE chat_messages ADD COLUMN conversation_id INTEGER NOT NULL DEFAULT 1")
                 db.execSQL("CREATE INDEX IF NOT EXISTS index_chat_messages_conversation_id_timestamp ON chat_messages(conversation_id, timestamp)")
