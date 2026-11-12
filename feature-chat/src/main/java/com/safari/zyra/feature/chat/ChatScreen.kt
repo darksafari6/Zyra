@@ -391,7 +391,7 @@ fun ChatScreen(
 @Composable
 private fun VoiceStatusBubble(title: String, body: String) {
     Surface(
-        color = Color(0xCC101522),
+        color = ZyraColors.glass,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth(.92f).border(1.dp, ZyraColors.cyan.copy(alpha = .3f), RoundedCornerShape(16.dp))
     ) {
@@ -459,7 +459,7 @@ private fun markdownText(source: String): AnnotatedString = buildAnnotatedString
             append(token.removePrefix("**").removeSuffix("**"))
             pop()
         } else if (token.startsWith("`")) {
-            pushStyle(SpanStyle(color = Color(0xFF73E8F5), background = Color(0xFF18283A)))
+            pushStyle(SpanStyle(color = ZyraColors.cyan, background = ZyraColors.surfaceElevated))
             append(token.trim('`'))
             pop()
         } else {
@@ -475,7 +475,7 @@ private fun markdownText(source: String): AnnotatedString = buildAnnotatedString
 @Composable
 private fun TypingIndicator() {
     Row(
-        Modifier.background(Color(0xCC101522), RoundedCornerShape(18.dp)).padding(horizontal = 17.dp, vertical = 15.dp),
+        Modifier.background(ZyraColors.glass, RoundedCornerShape(18.dp)).padding(horizontal = 17.dp, vertical = 15.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -524,9 +524,9 @@ private fun ContactDock() {
                     }
                 ) {
                     Surface(
-                        modifier = Modifier.size(43.dp).border(1.dp, Color(0x8845CBE8), CircleShape),
+                        modifier = Modifier.size(43.dp).border(1.dp, ZyraColors.cyan.copy(alpha = .53f), CircleShape),
                         shape = CircleShape,
-                        color = Color(0xCC111A2C)
+                        color = ZyraColors.glass
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(painterResource(item.first), contentDescription = item.second, tint = Color.White, modifier = Modifier.size(20.dp))
