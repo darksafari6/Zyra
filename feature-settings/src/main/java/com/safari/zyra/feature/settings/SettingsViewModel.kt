@@ -70,7 +70,7 @@ class SettingsViewModel @Inject constructor(
             settingsRepository.updateLiveModelId(value.liveModelId)
             settingsRepository.updateSystemPrompt(value.systemPrompt)
             settingsRepository.updatePersona(value.persona, value.customPersona)
-            settingsRepository.updateVoiceSettings(value.voiceLanguage, value.voiceSpeed, value.voicePitch)
+            settingsRepository.updateVoiceSettings(value.voiceLanguage, value.voiceSpeed, value.voicePitch, value.voiceName)
             settingsRepository.setReduceEffects(reduceEffects)
             settingsRepository.setPureBlack(value.pureBlack)
             settingsRepository.setAutoTitle(value.autoTitle)
