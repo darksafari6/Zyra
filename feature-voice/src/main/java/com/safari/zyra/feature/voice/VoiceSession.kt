@@ -180,7 +180,10 @@ class VoiceSession @Inject constructor(
     }
 
     private fun isStopCommand(raw: String): Boolean {
-        val normalized = raw.lowercase().replace(Regex("[^\\\\p{L}\\\\p{N}\\\\s]"), " ").replace(Regex("\\\\s+"), " ").trim()
+        val normalized = raw.lowercase()
+            .replace(Regex("""[^\p{L}\p{N}\s]"""), " ")
+            .replace(Regex("""\s+"""), " ")
+            .trim()
         return normalized in setOf("stop", "stop speaking", "cancel", "bas", "bas karo", "ruk jao", "ruko")
     }
 }
