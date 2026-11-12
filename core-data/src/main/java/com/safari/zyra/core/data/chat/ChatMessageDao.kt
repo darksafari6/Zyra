@@ -11,6 +11,9 @@ interface ChatMessageDao {
     @Query("SELECT * FROM chat_messages WHERE conversation_id = :conversationId ORDER BY timestamp ASC, id ASC")
     fun observeAll(conversationId: Long): Flow<List<ChatMessage>>
 
+    @Query("SELECT * FROM chat_messages ORDER BY timestamp ASC, id ASC")
+    fun observeAllMessages(): Flow<List<ChatMessage>>
+
     @Query("SELECT * FROM chat_messages WHERE conversation_id = :conversationId ORDER BY timestamp DESC, id DESC LIMIT :limit")
     suspend fun latest(limit: Int, conversationId: Long): List<ChatMessage>
 
@@ -28,6 +31,9 @@ interface ChatMessageDao {
 
     @Query("DELETE FROM chat_messages WHERE conversation_id = :conversationId")
     suspend fun clear(conversationId: Long)
+
+    @Query("DELETE FROM chat_messages")
+    suspend fun clearAll()
 
     @Query("DELETE FROM chat_messages WHERE conversation_id = :conversationId")
     suspend fun deleteConversationMessages(conversationId: Long)
