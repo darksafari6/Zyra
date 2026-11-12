@@ -6,6 +6,7 @@ import com.safari.zyra.core.data.SettingsDataStore
 import com.safari.zyra.core.data.SettingsRepository
 import com.safari.zyra.core.data.chat.ChatMessageDao
 import com.safari.zyra.core.data.chat.ChatRepository
+import com.safari.zyra.core.data.chat.ConversationDao
 import com.safari.zyra.core.data.chat.RoomChatRepository
 import com.safari.zyra.core.data.chat.ZyraDatabase
 import com.safari.zyra.core.data.security.ApiKeyStore
@@ -35,10 +36,11 @@ abstract class AppBindingsModule {
         @Provides @Singleton
         fun provideDatabase(@ApplicationContext context: Context): ZyraDatabase =
             Room.databaseBuilder(context, ZyraDatabase::class.java, "zyra_chat.db")
-                .addMigrations(ZyraDatabase.MIGRATION_1_2)
+                .addMigrations(ZyraDatabase.MIGRATION_1_2, ZyraDatabase.MIGRATION_2_3)
                 .build()
 
         @Provides fun provideChatDao(database: ZyraDatabase): ChatMessageDao = database.chatMessageDao()
+        @Provides fun provideConversationDao(database: ZyraDatabase): ConversationDao = database.conversationDao()
 
         @Provides @Singleton
         fun provideHttpClient(): HttpClient = HttpClient(OkHttp) {
