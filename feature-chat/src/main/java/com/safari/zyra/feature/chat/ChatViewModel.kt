@@ -76,7 +76,30 @@ class ChatViewModel @Inject constructor(
                 val image = preparedImage?.first
                 val storedImagePath = preparedImage?.second
                 if (persistUserMessage) chatRepository.add(ChatMessage(role = "user", text = prompt, imagePath = storedImagePath, conversation_id = activeConversationId.value))
-                val history = chatRepository.recentForPrompt(100, activeConversationId.value).dropLast(1).map { GeminiTurn(it.role, it.text) }
+                val conversationId = activeConversationId.value
+                val recent = chatRepository.recentForPrompt(500, conversationId)
+                val conversation = chatRepository.getConversation(conversationId)
+                val notYetSummarized = recent.filter { it.id > (conversation?.summaryThroughMessageId ?: 0L) }
+                val olderTurns = notYetSummarized.dropLast(24)
+                var rollingSummary = conversation?.summary.orEmpty()
+                var summarizedThrough = conversation?.summaryThroughMessageId ?: 0L
+                if (olderTurns.isNotEmpty()) {
+                    val addition = olderTurns.joinToString("\\n") { turn ->
+                        val attachmentNote = if (turn.imagePath != null) " [Earlier image attachment omitted]" else ""
+                        "${turn.role}: ${turn.text.take(360)}$attachmentNote"
+                    }
+                    rollingSummary = (rollingSummary + "\\n" + addition).trim().takeLast(6_000)
+                    summarizedThrough = olderTurns.last().id
+                    chatRepository.updateSummary(conversationId, rollingSummary, summarizedThrough)
+                }
+                val historyTurns = recent.filter { it.id > summarizedThrough }.dropLast(1).map { turn ->
+                    val note = if (turn.imagePath != null) " [Earlier image attachment omitted]" else ""
+                    GeminiTurn(turn.role, turn.text + note)
+                }
+                val history = buildList {
+                    if (rollingSummary.isNotBlank()) add(GeminiTurn("summary", rollingSummary))
+                    addAll(historyTurns)
+                }
                 val response = StringBuilder()
                 geminiClient.streamReply(
                     apiKey = apiKeyStore.read(),
