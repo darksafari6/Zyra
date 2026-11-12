@@ -28,8 +28,8 @@ dependencies {
     ksp(libs.androidx.room.compiler)
     ksp(libs.hilt.compiler)
     testImplementation(libs.junit)
-    androidTestImplementation(libs.androidx-test-core)
-    androidTestImplementation(libs.androidx-test-ext-junit)
-    androidTestImplementation(libs.androidx-test-runner)
-    androidTestImplementation(libs.androidx-room-testing)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.room.testing)
 }
