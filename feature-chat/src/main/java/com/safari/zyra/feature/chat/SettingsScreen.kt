@@ -8,6 +8,8 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -49,7 +51,7 @@ fun SettingsScreen(
     var confirmClear by remember { mutableStateOf(false) }
 
     Column(
-        Modifier.fillMaxSize().background(Color(0xFF05060A)).verticalScroll(rememberScrollState()).padding(20.dp),
+        Modifier.fillMaxSize().safeDrawingPadding().imePadding().background(Color(0xFF05060A)).verticalScroll(rememberScrollState()).padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(13.dp)
     ) {
         TextButton(onClick = onBack) { Text("←  Back to chat", color = Color(0xFF00E5FF)) }
