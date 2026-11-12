@@ -55,7 +55,6 @@ Changes currently staged on the `piece-5-hardening` branch:
 
 ### Piece 5 work still outstanding
 
-- EXIF-aware image orientation handling is not implemented yet.
 - Per-session SpeechRecognizer callback invalidation and a user-configurable spoken-stop toggle still need implementation.
 - A dedicated TTS language-pack installation prompt is not implemented; unsupported requested voices fall back to the device default.
 - Full single-active-request serialization between simultaneous text and voice operations still needs verification and hardening.
@@ -73,5 +72,5 @@ Changes currently staged on the `piece-5-hardening` branch:
 - Splash-to-chat transition timing.
 - Voice recognition, TTS playback and stop behavior across OEM speech services and installed language packs.
 - Microphone behavior, audio focus and interruption handling with wired/Bluetooth headphones and speaker output.
-- Image attachment size, EXIF orientation (still outstanding) and Gemini request limits.
+- Image attachment size, EXIF orientation, and Gemini request limits.
 - Keystore recovery on devices with invalidated or unavailable Android Keystore keys.
