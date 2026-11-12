@@ -3,6 +3,7 @@ package com.safari.zyra.core.ui.brand
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -25,16 +26,17 @@ fun JellyOrb(
     onClick: (() -> Unit)? = null,
     contentDescription: String = "Voice assistant",
     stateDescription: String = "Ready",
+    reduceEffects: Boolean = false,
     content: @Composable BoxScope.() -> Unit
 ) {
     var idle by remember { mutableStateOf(false) }
-    LaunchedEffect(enabled) {
-        while (enabled) { idle = !idle; delay(1800) }
+    LaunchedEffect(enabled, reduceEffects) {
+        while (enabled && !reduceEffects) { idle = !idle; delay(1800) }
         idle = false
     }
     val targetX = if (idle) 1.025f else 1f
     val targetY = if (idle) .98f else 1f
-    val sx by animateFloatAsState(targetX, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "orbScaleX")
+    val sx by animateFloatAsState(targetX, if (reduceEffects) tween(0) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "orbScaleX")
     val sy by animateFloatAsState(targetY, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "orbScaleY")
     val interaction = if (onClick != null) Modifier.clickable(
         enabled = enabled,
