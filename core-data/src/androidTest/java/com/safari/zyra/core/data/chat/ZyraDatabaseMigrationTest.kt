@@ -10,6 +10,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.junit.runner.RunWith
+import kotlinx.coroutines.runBlocking
 
 @RunWith(AndroidJUnit4::class)
 class ZyraDatabaseMigrationTest {
@@ -19,7 +20,7 @@ class ZyraDatabaseMigrationTest {
     fun closeDatabase() { database?.close() }
 
     @Test
-    fun migratesVersionTwoMessagesIntoDefaultConversation() {
+    fun migratesVersionTwoMessagesIntoDefaultConversation() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val name = "zyra-v2-migration-test.db"
         context.deleteDatabase(name)
