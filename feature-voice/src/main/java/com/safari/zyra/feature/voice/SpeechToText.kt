@@ -20,6 +20,7 @@ class SpeechToText @Inject constructor(@ApplicationContext private val context: 
     private var partial: ((String) -> Unit)? = null
     private var final: ((String) -> Unit)? = null
     private var failure: ((String) -> Unit)? = null
+    private var rmsChanged: ((Float) -> Unit)? = null
     private val mainHandler = Handler(Looper.getMainLooper())
     private var activeLanguage = "en-US"
     private var usingOnDevice = false
@@ -27,11 +28,12 @@ class SpeechToText @Inject constructor(@ApplicationContext private val context: 
 
     fun isAvailable() = SpeechRecognizer.isRecognitionAvailable(context)
 
-    fun start(languageTag: String, onPartial: (String) -> Unit, onFinal: (String) -> Unit, onFailure: (String) -> Unit) {
+    fun start(languageTag: String, onPartial: (String) -> Unit, onFinal: (String) -> Unit, onFailure: (String) -> Unit, onRms: (Float) -> Unit = {}) {
         if (!isAvailable()) { onFailure("Speech recognition is not available on this device."); return }
         partial = onPartial
         final = onFinal
         failure = onFailure
+        rmsChanged = onRms
         activeLanguage = languageTag.ifBlank { Locale.getDefault().toLanguageTag() }
         fallbackAttempted = false
         startRecognizer(preferOnDevice = true)
@@ -50,6 +52,8 @@ class SpeechToText @Inject constructor(@ApplicationContext private val context: 
                 putExtra(RecognizerIntent.EXTRA_LANGUAGE, activeLanguage)
                 putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
                 putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_COMPLETE_SILENCE_LENGTH_MILLIS, 1_000L)
+                putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_POSSIBLY_COMPLETE_SILENCE_LENGTH_MILLIS, 600L)
             }
             recognizer?.startListening(intent)
         }.onFailure { failure?.invoke(it.message ?: "Could not start speech recognition.") }
@@ -58,7 +62,7 @@ class SpeechToText @Inject constructor(@ApplicationContext private val context: 
     private fun listener() = object : RecognitionListener {
         override fun onReadyForSpeech(params: Bundle?) = Unit
         override fun onBeginningOfSpeech() = Unit
-        override fun onRmsChanged(rmsdB: Float) = Unit
+        override fun onRmsChanged(rmsdB: Float) { rmsChanged?.invoke(((rmsdB + 2f) / 12f).coerceIn(0f, 1f)) }
         override fun onBufferReceived(buffer: ByteArray?) = Unit
         override fun onEndOfSpeech() = Unit
         override fun onEvent(eventType: Int, params: Bundle?) = Unit
