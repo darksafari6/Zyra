@@ -7,6 +7,8 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Button
@@ -87,6 +89,7 @@ fun ChatScreen(
     val context = LocalContext.current
     val haptic = LocalHapticFeedback.current
     var showMicRationale by remember { mutableStateOf(false) }
+    var showVoiceMode by remember { mutableStateOf(false) }
     val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) {
             viewModel.startVoice()
@@ -264,6 +267,8 @@ fun ChatScreen(
                         else -> {
                             if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
                                 viewModel.startVoice()
+                                showVoiceMode = true
+                                showVoiceMode = true
                             } else showMicRationale = true
                         }
                     }
@@ -312,6 +317,12 @@ fun ChatScreen(
 
         ContactDock()
         Spacer(Modifier.height(5.dp))
+    }
+
+    if (showVoiceMode) {
+        Dialog(onDismissRequest = { viewModel.stopVoice(); showVoiceMode = false }, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
+            VoiceModeScreen(state.voiceState, onStop = { viewModel.stopVoice(); showVoiceMode = false }, onDismiss = { viewModel.stopVoice(); showVoiceMode = false })
+        }
     }
 
     if (showMicRationale) {
