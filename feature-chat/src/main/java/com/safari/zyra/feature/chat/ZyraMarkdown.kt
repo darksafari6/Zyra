@@ -37,7 +37,17 @@ fun ZyraMarkdown(source: String, modifier: Modifier = Modifier) {
     Column(modifier, verticalArrangement = Arrangement.spacedBy(5.dp)) {
         while (index < lines.size) {
             val line = lines[index]
-            if (line.trimStart().startsWith("```")) {
+            if (line.trimStart().startsWith("|")) {
+                val rows = mutableListOf<List<String>>()
+                while (index < lines.size && lines[index].trimStart().startsWith("|")) {
+                    val row = lines[index].trim().trim('|').split("|").map { it.trim() }
+                    if (row.none { it.matches(Regex(":?-{3,}:?")) }) rows += row
+                    index++
+                }
+                Column(Modifier.fillMaxWidth().background(ZyraColors.surfaceElevated, RoundedCornerShape(8.dp)).padding(8.dp)) {
+                    rows.forEach { cells -> Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) { cells.forEach { cell -> Text(cell, Modifier.weight(1f), color = ZyraColors.text, style = MaterialTheme.typography.bodySmall) } } }
+                }
+            } else if (line.trimStart().startsWith("```")) {
                 val code = buildString {
                     index++
                     while (index < lines.size && !lines[index].trimStart().startsWith("```")) {
