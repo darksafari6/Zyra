@@ -50,6 +50,8 @@ fun GlassSurface(
         }
     }
 }
+enum class ZyraButtonStyle { Filled, Tonal, Text }
+
 @Composable
 fun ZyraButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, style: ZyraButtonStyle = ZyraButtonStyle.Filled, enabled: Boolean = true) {
     when (style) {
