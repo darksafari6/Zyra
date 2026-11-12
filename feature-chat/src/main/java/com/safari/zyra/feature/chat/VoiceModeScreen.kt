@@ -33,7 +33,8 @@ fun VoiceModeScreen(state: VoiceState, reduceEffects: Boolean = false, onStop: (
     val transition = rememberInfiniteTransition(label = "voiceBackdrop")
     val animatedOffset by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(7000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "gradient")
     val offset = if (reduceEffects) 0f else animatedOffset
-    val wave by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(550, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "wave")
+    val animatedWave by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(550, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "wave")
+    val wave = if (reduceEffects) 0f else animatedWave
     val amplitude = (state as? VoiceState.Listening)?.amplitude?.coerceIn(0f, 1f) ?: 0f
     val status = when(state) {
         is VoiceState.Listening -> "Listening"
