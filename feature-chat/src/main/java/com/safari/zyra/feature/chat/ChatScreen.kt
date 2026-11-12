@@ -81,9 +81,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -206,9 +203,18 @@ fun ChatScreen(
                     }
                 }
             }
-            items(state.messages, key = { "message_${it.id}" }) { message ->
-                AnimatedVisibility(visible = true, enter = fadeIn() + slideInVertically(initialOffsetY = { it / 5 }), modifier = Modifier.animateItem()) {
-                    MessageBubble(message.role == "user", message.text, message.imagePath, timestamp = message.timestamp, onDelete = { viewModel.deleteMessage(message.id) }, onRegenerate = if (message.role == "assistant") viewModel::regenerateLastReply else null)
+            state.messages.forEachIndexed { index, message ->
+                val dayKey = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date(message.timestamp))
+                val previousDay = state.messages.getOrNull(index - 1)?.timestamp?.let { SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date(it)) }
+                if (index == 0 || previousDay != dayKey) {
+                    item(key = "day_$dayKey") {
+                        Text(SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).format(Date(message.timestamp)), color = ZyraColors.muted, style = MaterialTheme.typography.labelSmall, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
+                    }
+                }
+                item(key = "message_${message.id}") {
+                    AnimatedVisibility(visible = true, enter = fadeIn() + slideInVertically(initialOffsetY = { it / 5 }), modifier = Modifier.animateItem()) {
+                        MessageBubble(message.role == "user", message.text, message.imagePath, timestamp = message.timestamp, onDelete = { viewModel.deleteMessage(message.id) }, onRegenerate = if (message.role == "assistant") viewModel::regenerateLastReply else null)
+                    }
                 }
             }
             if (state.isStreaming) {
@@ -447,30 +453,6 @@ private fun MessageBubble(isUser: Boolean, text: String, imagePath: String?, str
             }
         }
     }
-}
-
-private fun markdownText(source: String): AnnotatedString = buildAnnotatedString {
-    val regex = Regex("(\\*\\*.+?\\*\\*|`[^`]+`|\\*[^*\\n]+\\*)")
-    var cursor = 0
-    regex.findAll(source).forEach { match ->
-        append(source.substring(cursor, match.range.first))
-        val token = match.value
-        if (token.startsWith("**")) {
-            pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
-            append(token.removePrefix("**").removeSuffix("**"))
-            pop()
-        } else if (token.startsWith("`")) {
-            pushStyle(SpanStyle(color = ZyraColors.cyan, background = ZyraColors.surfaceElevated))
-            append(token.trim('`'))
-            pop()
-        } else {
-            pushStyle(SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic))
-            append(token.trim('*'))
-            pop()
-        }
-        cursor = match.range.last + 1
-    }
-    append(source.substring(cursor))
 }
 
 @Composable
