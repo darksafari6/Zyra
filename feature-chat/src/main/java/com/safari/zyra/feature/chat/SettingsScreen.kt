@@ -50,6 +50,7 @@ fun SettingsScreen(
     onBack: () -> Unit,
     viewModel: ChatViewModel = hiltViewModel()
 ) {
+    val context = androidx.compose.ui.platform.LocalContext.current
     val state by viewModel.state.collectAsStateWithLifecycle()
     var apiKey by remember { mutableStateOf("") }
     var textModel by remember(state.settings.textModelId) { mutableStateOf(state.settings.textModelId) }
@@ -71,20 +72,20 @@ fun SettingsScreen(
         Text(stringResource(R.string.settings_gemini), color = ZyraColors.cyan, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
         Surface(color = ZyraColors.glass, shape = RoundedCornerShape(18.dp), modifier = Modifier.fillMaxWidth()) {
             Column(Modifier.padding(15.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Text(if (state.hasApiKey) "An encrypted API key is saved on this device." else "No API key saved yet.", color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize)
+                Text(if (state.hasApiKey) stringResource(R.string.settings_key_saved) else stringResource(R.string.settings_no_key), color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize)
                 OutlinedTextField(
                     value = apiKey,
                     onValueChange = { apiKey = it },
                     modifier = Modifier.fillMaxWidth(),
-                    label = { Text("Gemini API key") },
-                    placeholder = { Text(if (state.hasApiKey) "Saved key — enter a replacement" else "Paste your API key") },
+                    label = { Text(stringResource(R.string.settings_api_key)) },
+                    placeholder = { Text(if (state.hasApiKey) stringResource(R.string.settings_replace_key) else stringResource(R.string.settings_paste_key)) },
                     visualTransformation = PasswordVisualTransformation(),
                     singleLine = true,
                     colors = zyraFieldColors()
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Button(onClick = { viewModel.saveApiKey(apiKey); apiKey = "" }, enabled = apiKey.isNotBlank()) { Text("Save key") }
-                    TextButton(onClick = viewModel::clearApiKey, enabled = state.hasApiKey) { Text("Clear key", color = ZyraColors.error) }
+                    Button(onClick = { viewModel.saveApiKey(apiKey); apiKey = "" }, enabled = apiKey.isNotBlank()) { Text(stringResource(R.string.settings_save_key)) }
+                    TextButton(onClick = viewModel::clearApiKey, enabled = state.hasApiKey) { Text(stringResource(R.string.settings_clear_key), color = ZyraColors.error) }
                 }
             }
         }
@@ -94,8 +95,8 @@ fun SettingsScreen(
             value = textModel,
             onValueChange = { textModel = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Text model ID") },
-            placeholder = { Text("Enter an available Gemini model ID") },
+            label = { Text(stringResource(R.string.settings_text_model)) },
+            placeholder = { Text(stringResource(R.string.settings_text_model_hint)) },
             singleLine = true,
             colors = zyraFieldColors()
         )
@@ -103,8 +104,8 @@ fun SettingsScreen(
             value = liveModel,
             onValueChange = { liveModel = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Live model ID (for Piece 7)") },
-            placeholder = { Text("Enter later when configuring Live API") },
+            label = { Text(stringResource(R.string.settings_live_model)) },
+            placeholder = { Text(stringResource(R.string.settings_live_model_hint)) },
             singleLine = true,
             colors = zyraFieldColors()
         )
@@ -112,7 +113,7 @@ fun SettingsScreen(
             value = prompt,
             onValueChange = { prompt = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Zyra system personality") },
+            label = { Text(stringResource(R.string.settings_personality)) },
             minLines = 4,
             colors = zyraFieldColors()
         )
@@ -129,20 +130,20 @@ fun SettingsScreen(
             value = voiceLanguage,
             onValueChange = { voiceLanguage = it },
             modifier = Modifier.fillMaxWidth(),
-            label = { Text("Speech language (BCP-47)") },
-            placeholder = { Text("en-US, ur-PK, hi-IN") },
+            label = { Text(stringResource(R.string.settings_language)) },
+            placeholder = { Text(stringResource(R.string.settings_language_hint)) },
             singleLine = true,
             colors = zyraFieldColors()
         )
-        Text("Speech speed: " + String.format("%.2fx", voiceSpeed), color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize)
+        Text(stringResource(R.string.settings_speed, voiceSpeed), color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize)
         Slider(value = voiceSpeed, onValueChange = { voiceSpeed = it }, valueRange = 0.65f..1.5f)
-        Text("Voice pitch: " + String.format("%.2fx", voicePitch), color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize)
+        Text(stringResource(R.string.settings_pitch, voicePitch), color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize)
         Slider(value = voicePitch, onValueChange = { voicePitch = it }, valueRange = 0.7f..1.4f)
 
         Button(
             onClick = {
                 viewModel.saveSettings(textModel, liveModel, prompt, voiceLanguage, voiceSpeed, voicePitch)
-                scope.launch { snackbarHostState.showSnackbar("Settings saved successfully.") }
+                scope.launch { snackbarHostState.showSnackbar(context.getString(R.string.settings_saved)) }
             },
             modifier = Modifier.fillMaxWidth()
         ) { Text(stringResource(R.string.settings_save)) }
@@ -153,14 +154,14 @@ fun SettingsScreen(
             modifier = Modifier.fillMaxWidth(),
             enabled = !state.testingConnection && state.hasApiKey && textModel.isNotBlank()
         ) {
-            if (state.testingConnection) Text("Testing…") else Text(stringResource(R.string.settings_test))
+            if (state.testingConnection) Text(stringResource(R.string.settings_testing)) else Text(stringResource(R.string.settings_test))
         }
         state.error?.let { Text(it, color = ZyraColors.error, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
         state.testResult?.let { Text(it, color = if (it.startsWith("Connected")) ZyraColors.success else ZyraColors.error, fontSize = MaterialTheme.typography.labelSmall.fontSize) }
 
         Spacer(Modifier.height(5.dp))
         Text(stringResource(R.string.settings_chat_data), color = ZyraColors.cyan, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
-        Text("Clear all saved messages and locally stored chat images from this device.", color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize)
+        Text(stringResource(R.string.settings_clear_description), color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize)
         TextButton(onClick = { confirmClear = true }) { Text(stringResource(R.string.settings_clear_history), color = ZyraColors.error) }
         Spacer(Modifier.height(24.dp))
     }
@@ -168,12 +169,12 @@ fun SettingsScreen(
     if (confirmClear) {
         AlertDialog(
             onDismissRequest = { confirmClear = false },
-            title = { Text("Clear chat history?") },
-            text = { Text("This permanently deletes saved messages and chat image copies from this device.") },
+            title = { Text(stringResource(R.string.settings_clear_confirm_title)) },
+            text = { Text(stringResource(R.string.settings_clear_confirm_body)) },
             confirmButton = {
-                TextButton(onClick = { viewModel.clearHistory(); confirmClear = false }) { Text("Clear", color = ZyraColors.error) }
+                TextButton(onClick = { viewModel.clearHistory(); confirmClear = false }) { Text(stringResource(R.string.common_clear), color = ZyraColors.error) }
             },
-            dismissButton = { TextButton(onClick = { confirmClear = false }) { Text("Cancel") } },
+            dismissButton = { TextButton(onClick = { confirmClear = false }) { Text(stringResource(R.string.common_cancel)) } },
             containerColor = ZyraColors.surface,
             titleContentColor = ZyraColors.text,
             textContentColor = ZyraColors.muted
