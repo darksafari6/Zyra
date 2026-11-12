@@ -8,6 +8,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Button
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
@@ -114,7 +115,7 @@ fun ChatScreen(
     }
 
     Column(
-        Modifier.fillMaxSize().safeDrawingPadding().imePadding().background(Color(0xFF05060A)).padding(horizontal = 14.dp),
+        Modifier.fillMaxSize().safeDrawingPadding().imePadding().background(ZyraColors.background).padding(horizontal = 14.dp),
         verticalArrangement = Arrangement.spacedBy(10.dp)
     ) {
         Row(
@@ -126,13 +127,13 @@ fun ChatScreen(
             }
             Spacer(Modifier.width(9.dp))
             Column(Modifier.weight(1f)) {
-                Text("ZYRA", color = Color(0xFFEAF0FF), fontSize = 17.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
-                Text("by Safari", color = Color(0xFF8C9AB8), fontSize = 10.sp, letterSpacing = 1.sp)
+                Text("ZYRA", color = ZyraColors.text, fontSize = MaterialTheme.typography.bodyLarge.fontSize, fontWeight = FontWeight.Bold, letterSpacing = 2.sp)
+                Text("by Safari", color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize, letterSpacing = 1.sp)
             }
             Surface(
-                color = if (state.hasApiKey && state.settings.textModelId.isNotBlank()) Color(0x2220D8A0) else Color(0x22FFB74D),
+                color = if (state.hasApiKey && state.settings.textModelId.isNotBlank()) ZyraColors.success.copy(alpha = .12f) else ZyraColors.warning.copy(alpha = .12f),
                 shape = CircleShape,
-                modifier = Modifier.border(1.dp, if (state.hasApiKey && state.settings.textModelId.isNotBlank()) Color(0x6648E0B0) else Color(0x66FFB74D), CircleShape)
+                modifier = Modifier.border(1.dp, if (state.hasApiKey && state.settings.textModelId.isNotBlank()) ZyraColors.success.copy(alpha = .4f) else ZyraColors.warning.copy(alpha = .4f), CircleShape)
             ) {
                 Text(
                     when (state.voiceState) {
@@ -143,14 +144,14 @@ fun ChatScreen(
                         VoiceState.Idle -> if (state.hasApiKey && state.settings.textModelId.isNotBlank()) "READY" else "SETUP"
                     },
                     modifier = Modifier.padding(horizontal = 11.dp, vertical = 6.dp),
-                    color = if (state.hasApiKey && state.settings.textModelId.isNotBlank()) Color(0xFF72E7BE) else Color(0xFFFFC56D),
-                    fontSize = 9.sp,
+                    color = if (state.hasApiKey && state.settings.textModelId.isNotBlank()) ZyraColors.success else ZyraColors.warning,
+                    fontSize = MaterialTheme.typography.labelSmall.fontSize,
                     fontWeight = FontWeight.Bold,
                     letterSpacing = 1.sp
                 )
             }
             IconButton(onClick = onOpenSettings) {
-                Icon(painterResource(R.drawable.ic_zyra_settings), contentDescription = "Settings", tint = Color(0xFFEAF0FF))
+                Icon(painterResource(R.drawable.ic_zyra_settings), contentDescription = "Settings", tint = ZyraColors.text)
             }
         }
 
@@ -164,10 +165,10 @@ fun ChatScreen(
                     Column(Modifier.fillMaxWidth().padding(top = 42.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         ZyraLogo(progress = 1f, modifier = Modifier.size(132.dp))
                         Spacer(Modifier.height(16.dp))
-                        Text("Hey, I'm Zyra.", color = Color(0xFFEAF0FF), fontSize = 23.sp, fontWeight = FontWeight.SemiBold)
-                        Text("Ask me anything. Let's make it happen.", color = Color(0xFF9BA7C2), fontSize = 13.sp)
+                        Text("Hey, I'm Zyra.", color = ZyraColors.text, fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.SemiBold)
+                        Text("Ask me anything. Let's make it happen.", color = ZyraColors.muted, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
                         if (!state.hasApiKey || state.settings.textModelId.isBlank()) {
-                            Text("Add your Gemini key and model ID in Settings to start.", color = Color(0xFF00E5FF), fontSize = 11.sp, modifier = Modifier.padding(top = 12.dp))
+                            Text("Add your Gemini key and model ID in Settings to start.", color = ZyraColors.cyan, fontSize = MaterialTheme.typography.labelSmall.fontSize, modifier = Modifier.padding(top = 12.dp))
                         }
                     }
                 }
@@ -201,11 +202,11 @@ fun ChatScreen(
             state.error?.let { message ->
                 item(key = "error") {
                     Row(
-                        Modifier.fillMaxWidth().background(Color(0x22FF5252), RoundedCornerShape(14.dp)).padding(10.dp),
+                        Modifier.fillMaxWidth().background(ZyraColors.error.copy(alpha = .12f), RoundedCornerShape(14.dp)).padding(10.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        Text(message, color = Color(0xFFFFA0A0), fontSize = 12.sp, modifier = Modifier.weight(1f))
-                        TextButton(onClick = viewModel::dismissError) { Text("Dismiss", color = Color(0xFFFFA0A0)) }
+                        Text(message, color = ZyraColors.error, fontSize = MaterialTheme.typography.labelSmall.fontSize, modifier = Modifier.weight(1f))
+                        TextButton(onClick = viewModel::dismissError) { Text("Dismiss", color = ZyraColors.error) }
                     }
                 }
             }
@@ -213,17 +214,17 @@ fun ChatScreen(
 
         if (selectedImage != null) {
             Row(
-                Modifier.fillMaxWidth().background(Color(0xFF10182B), RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 7.dp),
+                Modifier.fillMaxWidth().background(ZyraColors.surfaceElevated, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Image attached", color = Color(0xFF00E5FF), fontSize = 12.sp, modifier = Modifier.weight(1f))
+                Text("Image attached", color = ZyraColors.cyan, fontSize = MaterialTheme.typography.labelSmall.fontSize, modifier = Modifier.weight(1f))
                 TextButton(onClick = { selectedImage = null }) { Text("Remove") }
             }
         }
 
         Row(
-            Modifier.fillMaxWidth().background(Color(0xCC0E1220), RoundedCornerShape(28.dp))
-                .border(1.dp, Color(0x553C5B83), RoundedCornerShape(28.dp))
+            Modifier.fillMaxWidth().background(ZyraColors.glass, RoundedCornerShape(28.dp))
+                .border(1.dp, ZyraColors.border, RoundedCornerShape(28.dp))
                 .padding(horizontal = 7.dp, vertical = 6.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
@@ -231,13 +232,13 @@ fun ChatScreen(
                 Icon(painterResource(R.drawable.ic_zyra_attach), contentDescription = "Attach image")
             }
             Box(Modifier.weight(1f).padding(horizontal = 4.dp), contentAlignment = Alignment.CenterStart) {
-                if (draft.isEmpty()) Text("Message Zyra...", color = Color(0xFF7E8BA6), fontSize = 14.sp)
+                if (draft.isEmpty()) Text("Message Zyra...", color = ZyraColors.muted, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
                 BasicTextField(
                     value = draft,
                     onValueChange = { draft = it },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = !state.isStreaming,
-                    textStyle = androidx.compose.ui.text.TextStyle(color = Color(0xFFEAF0FF), fontSize = 14.sp),
+                    textStyle = androidx.compose.ui.text.TextStyle(color = ZyraColors.text, fontSize = MaterialTheme.typography.bodyMedium.fontSize),
                     maxLines = 5
                 )
             }
@@ -271,18 +272,18 @@ fun ChatScreen(
                 Surface(
                     modifier = Modifier.size(39.dp).border(
                         1.dp,
-                        if (listening) Color(0xFF00E5FF) else Color(0x6645CBE8),
+                        if (listening) ZyraColors.cyan else ZyraColors.cyan.copy(alpha = .4f),
                         CircleShape
                     ),
                     shape = CircleShape,
-                    color = if (listening) Color(0xFF123849) else Color(0xFF10182B)
+                    color = if (listening) ZyraColors.surfaceElevated else ZyraColors.surfaceElevated
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(
                             painterResource(R.drawable.ic_zyra_mic),
                             contentDescription = if (listening) "Stop listening" else "Start voice chat",
                             modifier = Modifier.size(20.dp),
-                            tint = if (listening) Color(0xFF00E5FF) else Color(0xFFEAF0FF)
+                            tint = if (listening) ZyraColors.cyan else ZyraColors.text
                         )
                     }
                 }
@@ -300,7 +301,7 @@ fun ChatScreen(
                 Surface(
                     modifier = Modifier.size(39.dp),
                     shape = CircleShape,
-                    color = if (!state.isStreaming && (draft.isNotBlank() || selectedImage != null)) Color(0xFF00E5FF) else Color(0xFF33435B)
+                    color = if (!state.isStreaming && (draft.isNotBlank() || selectedImage != null)) ZyraColors.cyan else ZyraColors.border
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Icon(painterResource(R.drawable.ic_zyra_send), contentDescription = "Send", modifier = Modifier.size(18.dp))
@@ -327,9 +328,9 @@ fun ChatScreen(
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { showMicRationale = false }) { Text("Not now") }
             },
-            containerColor = Color(0xFF101522),
-            titleContentColor = Color(0xFFEAF0FF),
-            textContentColor = Color(0xFF9BA7C2)
+            containerColor = ZyraColors.surface,
+            titleContentColor = ZyraColors.text,
+            textContentColor = ZyraColors.muted
         )
     }
 }
@@ -339,11 +340,11 @@ private fun VoiceStatusBubble(title: String, body: String) {
     Surface(
         color = Color(0xCC101522),
         shape = RoundedCornerShape(16.dp),
-        modifier = Modifier.fillMaxWidth(.92f).border(1.dp, Color(0x5535BFD9), RoundedCornerShape(16.dp))
+        modifier = Modifier.fillMaxWidth(.92f).border(1.dp, ZyraColors.cyan.copy(alpha = .3f), RoundedCornerShape(16.dp))
     ) {
         Column(Modifier.padding(horizontal = 13.dp, vertical = 10.dp)) {
-            Text(title.uppercase(), color = Color(0xFF00E5FF), fontSize = 9.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
-            Text(body, color = Color(0xFFEAF0FF), fontSize = 13.sp, lineHeight = 19.sp)
+            Text(title.uppercase(), color = ZyraColors.cyan, fontSize = MaterialTheme.typography.labelSmall.fontSize, fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
+            Text(body, color = ZyraColors.text, fontSize = MaterialTheme.typography.bodyMedium.fontSize, lineHeight = 19.sp)
         }
     }
 }
@@ -356,31 +357,31 @@ private fun MessageBubble(isUser: Boolean, text: String, imagePath: String?, str
         horizontalAlignment = if (isUser) Alignment.End else Alignment.Start
     ) {
         Surface(
-            color = if (isUser) Color(0xFF14243A) else Color(0xCC101522),
+            color = if (isUser) ZyraColors.surfaceElevated else Color(0xCC101522),
             shape = RoundedCornerShape(
                 topStart = 18.dp, topEnd = 18.dp,
                 bottomStart = if (isUser) 18.dp else 5.dp,
                 bottomEnd = if (isUser) 5.dp else 18.dp
             ),
             modifier = Modifier.fillMaxWidth(.88f)
-                .border(1.dp, if (isUser) Color(0x5544BDE0) else Color(0x334A5B7D), RoundedCornerShape(18.dp))
+                .border(1.dp, if (isUser) ZyraColors.cyan.copy(alpha = .32f) else ZyraColors.border, RoundedCornerShape(18.dp))
         ) {
             Column(Modifier.padding(horizontal = 14.dp, vertical = 11.dp)) {
                 if (imagePath != null) AsyncImage(model = File(imagePath), contentDescription = "Attached image", modifier = Modifier.fillMaxWidth().heightIn(max = 220.dp).clip(RoundedCornerShape(12.dp)).padding(bottom = 7.dp))
                 Text(
                     markdownText(text),
-                    color = Color(0xFFEAF0FF),
-                    fontSize = 14.sp,
+                    color = ZyraColors.text,
+                    fontSize = MaterialTheme.typography.bodyMedium.fontSize,
                     lineHeight = 21.sp
                 )
-                if (streaming) Text("●", color = Color(0xFF00E5FF), fontSize = 8.sp)
+                if (streaming) Text("●", color = ZyraColors.cyan, fontSize = MaterialTheme.typography.labelSmall.fontSize)
             }
         }
         if (!isUser && !streaming && text.isNotBlank()) {
             Text(
                 "COPY",
-                color = Color(0xFF7183A3),
-                fontSize = 9.sp,
+                color = ZyraColors.muted,
+                fontSize = MaterialTheme.typography.labelSmall.fontSize,
                 letterSpacing = 1.sp,
                 modifier = Modifier.padding(start = 8.dp, top = 4.dp).clickable {
                     val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
@@ -430,9 +431,9 @@ private fun TypingIndicator() {
                 animationSpec = infiniteRepeatable(tween(480, delayMillis = index * 140), RepeatMode.Reverse),
                 label = "typing-dot-$index"
             )
-            Box(Modifier.size(6.dp).background(Color(0xFF00E5FF).copy(alpha = alpha), CircleShape))
+            Box(Modifier.size(6.dp).background(ZyraColors.cyan.copy(alpha = alpha), CircleShape))
         }
-        Text("Zyra is thinking", color = Color(0xFF9BA7C2), fontSize = 11.sp)
+        Text("Zyra is thinking", color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize)
     }
 }
 
@@ -474,7 +475,7 @@ private fun ContactDock() {
                         }
                     }
                 }
-                Text(item.second, color = Color(0xFF8290AA), fontSize = 9.sp, modifier = Modifier.padding(top = 3.dp))
+                Text(item.second, color = ZyraColors.muted, fontSize = MaterialTheme.typography.labelSmall.fontSize, modifier = Modifier.padding(top = 3.dp))
             }
         }
     }
