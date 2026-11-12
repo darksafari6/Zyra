@@ -128,12 +128,10 @@ fun SettingsScreen(
         Button(
             onClick = {
                 viewModel.saveSettings(textModel, liveModel, prompt, voiceLanguage, voiceSpeed, voicePitch)
+                scope.launch { snackbarHostState.showSnackbar("Settings saved successfully.") }
             },
             modifier = Modifier.fillMaxWidth()
-        ) {
-            viewModel.saveSettings(textModel, liveModel, prompt, voiceLanguage, voiceSpeed, voicePitch)
-            scope.launch { snackbarHostState.showSnackbar("Settings saved successfully.") }
-        }
+        ) { Text("Save settings") }
         SnackbarHost(hostState = snackbarHostState)
 
         Button(
