@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="chat_greeting">Hey, I’m Zyra.</string>
+    <string name="chat_subtitle">Ask me anything. Let’s make it happen.</string>
+    <string name="chat_setup_hint">Add your Gemini key and model ID in Settings to start.</string>
+    <string name="chat_suggestion_anything">Ask anything</string>
+    <string name="chat_suggestion_photo">Describe a photo</string>
+    <string name="chat_suggestion_day">Plan my day</string>
+    <string name="chat_input_hint">Message Zyra…</string>
+    <string name="chat_attach">Attach image or take photo</string>
+    <string name="chat_gallery">Choose from gallery</string>
+    <string name="chat_camera">Take a photo</string>
+    <string name="chat_image_attached">Image attached</string>
+    <string name="chat_remove">Remove</string>
+    <string name="chat_copy">Copy</string>
+    <string name="chat_share">Share</string>
+    <string name="chat_regenerate">Regenerate</string>
+    <string name="chat_delete">Delete</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_back">← Back to chat</string>
+    <string name="settings_gemini">Gemini connection</string>
+    <string name="settings_models">Model configuration</string>
+    <string name="settings_accessibility">Accessibility &amp; performance</string>
+    <string name="settings_reduce_effects">Reduce effects</string>
+    <string name="settings_reduce_effects_desc">Use simpler motion and fewer visual effects.</string>
+    <string name="settings_voice">Voice preferences</string>
+    <string name="settings_save">Save settings</string>
+    <string name="settings_test">Test Gemini connection</string>
+    <string name="settings_chat_data">Chat data</string>
+    <string name="settings_clear_history">Clear chat history</string>
+    <string name="voice_title">ZYRA VOICE</string>
+    <string name="voice_stop">Stop voice</string>
+    <string name="voice_dismiss">Swipe down or tap to close</string>
+</resources>
