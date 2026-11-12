@@ -111,8 +111,8 @@ class VoiceSession @Inject constructor(
                 flushSentence(config.voiceLanguage, config.voiceSpeed, config.voicePitch)
                 val answer = response.toString().trim()
                 if (answer.isBlank()) error("Zyra received an empty response.")
-                chat.add(ChatMessage(role = "assistant", text = answer))
                 while (tts.isSpeaking()) delay(120)
+                chat.add(ChatMessage(role = "assistant", text = answer))
                 mutableState.value = VoiceState.Idle
             } catch (cancelled: kotlinx.coroutines.CancellationException) {
                 throw cancelled
