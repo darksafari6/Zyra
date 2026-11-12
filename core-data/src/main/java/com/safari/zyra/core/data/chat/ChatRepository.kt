@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.Flow
 
 interface ChatRepository {
     val messages: Flow<List<ChatMessage>>
+    val allMessages: Flow<List<ChatMessage>>
     val conversations: Flow<List<Conversation>>
     fun observeMessages(conversationId: Long): Flow<List<ChatMessage>>
     suspend fun recentForPrompt(limit: Int = 20, conversationId: Long = 1): List<ChatMessage>
@@ -17,4 +18,5 @@ interface ChatRepository {
     suspend fun delete(messageId: Long)
     suspend fun deleteAfter(messageId: Long, conversationId: Long = 1)
     suspend fun clear(conversationId: Long = 1)
+    suspend fun clearAll()
 }
