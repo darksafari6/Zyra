@@ -1,5 +1,6 @@
 package com.safari.zyra.core.data.chat
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.Index
 import androidx.room.PrimaryKey
@@ -11,5 +12,5 @@ data class ChatMessage(
     val text: String,
     val imagePath: String? = null,
     val timestamp: Long = System.currentTimeMillis(),
-    val conversation_id: Long = 1
+    @ColumnInfo(name = "conversation_id", defaultValue = "1") val conversation_id: Long = 1
 )
