@@ -22,6 +22,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.stringResource
 import kotlinx.coroutines.launch
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.safari.zyra.core.ui.brand.JellyOrb
 import com.safari.zyra.core.ui.theme.ZyraColors
 import com.safari.zyra.core.ui.theme.ZyraTheme
@@ -29,13 +32,16 @@ import com.safari.zyra.feature.voice.VoiceState
 
 @Composable
 fun VoiceModeScreen(state: VoiceState, reduceEffects: Boolean = false, onStop: () -> Unit, onDismiss: () -> Unit) {
+    val lifecycleOwner = LocalLifecycleOwner.current
     val backdrop = remember { Animatable(0f) }
     val waveform = remember { Animatable(0f) }
-    LaunchedEffect(reduceEffects) {
+    LaunchedEffect(reduceEffects, lifecycleOwner) {
         if (reduceEffects) { backdrop.snapTo(0f); waveform.snapTo(0f) }
-        else kotlinx.coroutines.coroutineScope {
+        else lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            kotlinx.coroutines.coroutineScope {
             launch { while (true) { backdrop.animateTo(1f, tween(7000, easing = FastOutSlowInEasing)); backdrop.animateTo(0f, tween(7000, easing = FastOutSlowInEasing)) } }
             launch { while (true) { waveform.animateTo(1f, tween(550, easing = FastOutSlowInEasing)); waveform.animateTo(0f, tween(550, easing = FastOutSlowInEasing)) } }
+            }
         }
     }
     val offset = backdrop.value
