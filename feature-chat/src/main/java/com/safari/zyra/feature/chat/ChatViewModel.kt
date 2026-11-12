@@ -52,7 +52,7 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch { voiceSession.state.collect { voice -> mutableState.update { it.copy(voiceState = voice) } } }
     }
 
-    fun startVoice() = voiceSession.startListening()
+    fun startVoice() { if (!mutableState.value.isStreaming) voiceSession.startListening() }
     fun stopVoice() = voiceSession.stop()
     fun stopSpeaking() = voiceSession.stopSpeaking()
     fun voicePermissionDenied() {
