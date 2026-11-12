@@ -54,6 +54,7 @@ class ChatViewModel @Inject constructor(
     fun sendMessage(text: String, imageUri: Uri? = null) {
         val prompt = text.trim().ifBlank { if (imageUri != null) "Please describe and analyze this image." else "" }
         if (prompt.isBlank() || mutableState.value.isStreaming) return
+        if (mutableState.value.voiceState !is VoiceState.Idle) voiceSession.stop()
         viewModelScope.launch {
             mutableState.update { it.copy(isStreaming = true, streamingText = "", error = null) }
             try {
@@ -119,12 +120,7 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             mutableState.update { it.copy(testingConnection = true, testResult = null, error = null) }
             try {
-                settingsRepository.updateTextModelId(textModelId)
-                settingsRepository.updateLiveModelId(liveModelId)
-                settingsRepository.updateSystemPrompt(systemPrompt)
-                val saved = settingsRepository.settings.first()
-                mutableState.update { it.copy(settings = saved) }
-                val response = geminiClient.testConnection(apiKeyStore.read(), saved.textModelId, saved.systemPrompt)
+                val response = geminiClient.testConnection(apiKeyStore.read(), textModelId, systemPrompt)
                 mutableState.update { it.copy(testResult = "Connected successfully: ${response.trim()}") }
             } catch (failure: Exception) {
                 mutableState.update { it.copy(testResult = failure.message ?: "Connection test failed.") }
