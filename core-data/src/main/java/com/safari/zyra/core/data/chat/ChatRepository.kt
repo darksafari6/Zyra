@@ -7,5 +7,6 @@ interface ChatRepository {
     suspend fun recentForPrompt(limit: Int = 20): List<ChatMessage>
     suspend fun add(message: ChatMessage): Long
     suspend fun delete(messageId: Long)
+    suspend fun deleteAfter(messageId: Long)
     suspend fun clear()
 }
