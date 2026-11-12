@@ -75,6 +75,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -182,15 +183,15 @@ fun ChatScreen(
                     Column(Modifier.fillMaxWidth().padding(top = 42.dp), horizontalAlignment = Alignment.CenterHorizontally) {
                         ZyraLogo(progress = 1f, modifier = Modifier.size(132.dp))
                         Spacer(Modifier.height(16.dp))
-                        Text("Hey, I'm Zyra.", color = ZyraColors.text, fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.SemiBold)
-                        Text("Ask me anything. Let's make it happen.", color = ZyraColors.muted, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
+                        Text(stringResource(R.string.chat_greeting), color = ZyraColors.text, fontSize = MaterialTheme.typography.headlineSmall.fontSize, fontWeight = FontWeight.SemiBold)
+                        Text(stringResource(R.string.chat_subtitle), color = ZyraColors.muted, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
                         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 18.dp)) {
-                            listOf("Ask anything", "Describe a photo", "Plan my day").forEach { suggestion ->
+                            listOf(stringResource(R.string.chat_suggestion_anything), stringResource(R.string.chat_suggestion_photo), stringResource(R.string.chat_suggestion_day)).forEach { suggestion ->
                                 AssistChip(onClick = { draft = suggestion }, label = { Text(suggestion) }, colors = AssistChipDefaults.assistChipColors(labelColor = ZyraColors.cyan))
                             }
                         }
                         if (!state.hasApiKey || state.settings.textModelId.isBlank()) {
-                            Text("Add your Gemini key and model ID in Settings to start.", color = ZyraColors.cyan, fontSize = MaterialTheme.typography.labelSmall.fontSize, modifier = Modifier.padding(top = 12.dp))
+                            Text(stringResource(R.string.chat_setup_hint), color = ZyraColors.cyan, fontSize = MaterialTheme.typography.labelSmall.fontSize, modifier = Modifier.padding(top = 12.dp))
                         }
                     }
                 }
@@ -239,8 +240,8 @@ fun ChatScreen(
                 Modifier.fillMaxWidth().background(ZyraColors.surfaceElevated, RoundedCornerShape(12.dp)).padding(horizontal = 12.dp, vertical = 7.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Image attached", color = ZyraColors.cyan, fontSize = MaterialTheme.typography.labelSmall.fontSize, modifier = Modifier.weight(1f))
-                TextButton(onClick = { selectedImage = null }) { Text("Remove") }
+                Text(stringResource(R.string.chat_image_attached), color = ZyraColors.cyan, fontSize = MaterialTheme.typography.labelSmall.fontSize, modifier = Modifier.weight(1f))
+                TextButton(onClick = { selectedImage = null }) { Text(stringResource(R.string.chat_remove)) }
             }
         }
 
@@ -253,12 +254,12 @@ fun ChatScreen(
             Box {
                 IconButton(onClick = { showAttachMenu = true }) { Icon(painterResource(R.drawable.ic_zyra_attach), contentDescription = "Attach image or take photo") }
                 DropdownMenu(expanded = showAttachMenu, onDismissRequest = { showAttachMenu = false }) {
-                    DropdownMenuItem(text = { Text("Choose from gallery") }, onClick = { showAttachMenu = false; picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) })
-                    DropdownMenuItem(text = { Text("Take a photo") }, onClick = { showAttachMenu = false; cameraPreview.launch(null) })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.chat_gallery)) }, onClick = { showAttachMenu = false; picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) })
+                    DropdownMenuItem(text = { Text(stringResource(R.string.chat_camera)) }, onClick = { showAttachMenu = false; cameraPreview.launch(null) })
                 }
             }
             Box(Modifier.weight(1f).padding(horizontal = 4.dp), contentAlignment = Alignment.CenterStart) {
-                if (draft.isEmpty()) Text("Message Zyra...", color = ZyraColors.muted, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
+                if (draft.isEmpty()) Text(stringResource(R.string.chat_input_hint), color = ZyraColors.muted, fontSize = MaterialTheme.typography.bodyMedium.fontSize)
                 BasicTextField(
                     value = draft,
                     onValueChange = { draft = it },
@@ -411,10 +412,10 @@ private fun MessageBubble(isUser: Boolean, text: String, imagePath: String?, str
         if (!streaming) {
             Row(Modifier.padding(start = 8.dp, top = 3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
                 timestamp?.let { Text(SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(it)), color = ZyraColors.muted, style = MaterialTheme.typography.labelSmall) }
-                TextButton(onClick = { val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Zyra message", text)) }) { Text("Copy") }
-                TextButton(onClick = { val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text); context.startActivity(Intent.createChooser(send, "Share message")) }) { Text("Share") }
-                onRegenerate?.let { TextButton(onClick = it) { Text("Regenerate") } }
-                onDelete?.let { TextButton(onClick = it) { Text("Delete", color = ZyraColors.error) } }
+                TextButton(onClick = { val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Zyra message", text)) }) { Text(stringResource(R.string.chat_copy)) }
+                TextButton(onClick = { val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text); context.startActivity(Intent.createChooser(send, "Share message")) }) { Text(stringResource(R.string.chat_share)) }
+                onRegenerate?.let { TextButton(onClick = it) { Text(stringResource(R.string.chat_regenerate)) } }
+                onDelete?.let { TextButton(onClick = it) { Text(stringResource(R.string.chat_delete), color = ZyraColors.error) } }
             }
         }
     }
