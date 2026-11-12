@@ -74,3 +74,30 @@ Changes currently staged on the `piece-5-hardening` branch:
 - Microphone behavior, audio focus and interruption handling with wired/Bluetooth headphones and speaker output.
 - Image attachment size, EXIF orientation, and Gemini request limits.
 - Keystore recovery on devices with invalidated or unavailable Android Keystore keys.
+
+
+## Piece 6 — UI core update (partial implementation)
+
+### Added in this pass
+- Centralized dark-glass palette tokens in `ZyraColors`, plus spacing, radius and motion-duration tokens.
+- Replaced the default Material typography with a defined type scale.
+- Added reusable `ZyraScaffold`, `GlassSurface`, `ZyraButton`, `ZyraTextField`, `StatusPill`, `SectionCard`, `EmptyState`, `ErrorBanner`, `ZyraSnackbarHost` and `ZyraTopBar` components, with Compose previews.
+- Added TalkBack button role, activation label, content/state descriptions and a 48 dp minimum target to `JellyOrb`.
+- Exposed the existing DataStore `reduceEffects` preference in Settings and connected it to the UI state.
+- Replaced SDK-only performance classification with `ActivityManager.isLowRamDevice` and memory-class-based tiers.
+
+### Not yet implemented
+- Custom OFL font files are not bundled yet; the type scale currently uses the platform default font family.
+- Existing ChatScreen, SettingsScreen, splash and contact dock still contain hardcoded colors and text sizes; migration to tokens is incomplete.
+- GlassSurface currently uses a translucent solid fallback with gradient border; the API 31+ localized blur path is not implemented.
+- Full voice-mode destination/animations, AGSL background, lifecycle frame pausing and swipe-dismiss are not implemented.
+- Markdown AST renderer, message action menu, date/time labels, image viewer, corrected auto-scroll, suggestion chips, camera attach, IME send and animated list polish remain outstanding.
+- Predictive back, container-transform navigation, tappable splash skip, complete English/Urdu string extraction, RTL validation and tablet/foldable width constraints remain outstanding.
+- Component previews are source-defined; they have not been rendered or visually verified in Android Studio.
+
+### Dependencies
+- No new runtime dependency was added. The existing Compose UI tooling-preview/tooling catalog entries are now enabled in `core-ui` for previews.
+
+### Verification and device checks
+- `gradle :app:assembleDebug` has not been run in this environment. Do not treat this branch as build-verified until the GitHub Actions run passes.
+- Real-device checks still required: TalkBack activation/state announcements, 48 dp target sizing, reduce-effects persistence, low-RAM effect selection, insets/IME, RTL Urdu, landscape and large-screen layouts, voice lifecycle, animation scaling and API 28/31/33+ rendering.
