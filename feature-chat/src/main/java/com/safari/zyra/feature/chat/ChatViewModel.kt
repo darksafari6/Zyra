@@ -4,7 +4,10 @@ import android.content.Context
 import android.net.Uri
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Matrix
+import androidx.exifinterface.media.ExifInterface
 import java.io.ByteArrayOutputStream
+import java.io.ByteArrayInputStream
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.safari.zyra.core.data.SettingsRepository
@@ -98,6 +101,13 @@ class ChatViewModel @Inject constructor(
             ?: error("Could not read the selected image.")
         require(sourceBytes.size <= MAX_IMAGE_BYTES) { "Image is too large. Choose an image under 14 MB." }
 
+        val orientation = runCatching {
+            ExifInterface(ByteArrayInputStream(sourceBytes)).getAttributeInt(
+                ExifInterface.TAG_ORIENTATION,
+                ExifInterface.ORIENTATION_NORMAL
+            )
+        }.getOrDefault(ExifInterface.ORIENTATION_NORMAL)
+
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         BitmapFactory.decodeByteArray(sourceBytes, 0, sourceBytes.size, bounds)
         require(bounds.outWidth > 0 && bounds.outHeight > 0) { "The selected image could not be decoded." }
@@ -107,15 +117,17 @@ class ChatViewModel @Inject constructor(
             sourceBytes, 0, sourceBytes.size,
             BitmapFactory.Options().apply { inSampleSize = sample }
         ) ?: error("The selected image could not be decoded.")
-        val scale = minOf(1f, MAX_IMAGE_SIDE.toFloat() / maxOf(decoded.width, decoded.height))
+        val oriented = applyExifOrientation(decoded, orientation)
+        if (oriented !== decoded) decoded.recycle()
+        val scale = minOf(1f, MAX_IMAGE_SIDE.toFloat() / maxOf(oriented.width, oriented.height))
         val outputBitmap = if (scale < 1f) {
             Bitmap.createScaledBitmap(
-                decoded,
-                (decoded.width * scale).toInt().coerceAtLeast(1),
-                (decoded.height * scale).toInt().coerceAtLeast(1),
+                oriented,
+                (oriented.width * scale).toInt().coerceAtLeast(1),
+                (oriented.height * scale).toInt().coerceAtLeast(1),
                 true
-            ).also { if (it !== decoded) decoded.recycle() }
-        } else decoded
+            ).also { if (it !== oriented) oriented.recycle() }
+        } else oriented
         try {
             val output = ByteArrayOutputStream()
             check(outputBitmap.compress(Bitmap.CompressFormat.JPEG, JPEG_QUALITY, output)) {
@@ -129,6 +141,27 @@ class ChatViewModel @Inject constructor(
         } finally {
             outputBitmap.recycle()
         }
+    }
+
+    private fun applyExifOrientation(bitmap: Bitmap, orientation: Int): Bitmap {
+        val matrix = Matrix()
+        when (orientation) {
+            ExifInterface.ORIENTATION_FLIP_HORIZONTAL -> matrix.setScale(-1f, 1f)
+            ExifInterface.ORIENTATION_ROTATE_180 -> matrix.setRotate(180f)
+            ExifInterface.ORIENTATION_FLIP_VERTICAL -> matrix.setScale(1f, -1f)
+            ExifInterface.ORIENTATION_TRANSPOSE -> {
+                matrix.setRotate(90f)
+                matrix.postScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_ROTATE_90 -> matrix.setRotate(90f)
+            ExifInterface.ORIENTATION_TRANSVERSE -> {
+                matrix.setRotate(270f)
+                matrix.postScale(-1f, 1f)
+            }
+            ExifInterface.ORIENTATION_ROTATE_270 -> matrix.setRotate(270f)
+            else -> return bitmap
+        }
+        return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, matrix, true)
     }
 
     private fun calculateInSampleSize(width: Int, height: Int, maxSide: Int): Int {
