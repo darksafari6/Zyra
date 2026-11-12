@@ -2,6 +2,7 @@ package com.safari.zyra.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.RoomDatabase
 import com.safari.zyra.core.data.SettingsDataStore
 import com.safari.zyra.core.data.SettingsRepository
 import com.safari.zyra.core.data.chat.ChatMessageDao
@@ -37,6 +38,11 @@ abstract class AppBindingsModule {
         fun provideDatabase(@ApplicationContext context: Context): ZyraDatabase =
             Room.databaseBuilder(context, ZyraDatabase::class.java, "zyra_chat.db")
                 .addMigrations(ZyraDatabase.MIGRATION_1_2, ZyraDatabase.MIGRATION_2_3)
+                .addCallback(object : RoomDatabase.Callback() {
+                    override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                        db.execSQL("INSERT OR IGNORE INTO conversations (id, title, createdAt, updatedAt) VALUES (1, 'New chat', 0, 0)")
+                    }
+                })
                 .build()
 
         @Provides fun provideChatDao(database: ZyraDatabase): ChatMessageDao = database.chatMessageDao()
