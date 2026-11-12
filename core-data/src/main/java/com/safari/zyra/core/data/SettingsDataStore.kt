@@ -27,6 +27,7 @@ class SettingsDataStore @Inject constructor(
     private val personaKey = stringPreferencesKey("persona")
     private val customPersonaKey = stringPreferencesKey("custom_persona")
     private val voiceLanguageKey = stringPreferencesKey("voice_language")
+    private val voiceNameKey = stringPreferencesKey("voice_name")
     private val voiceSpeedKey = floatPreferencesKey("voice_speed")
     private val voicePitchKey = floatPreferencesKey("voice_pitch")
     private val pureBlackKey = booleanPreferencesKey("pure_black")
@@ -43,6 +44,7 @@ class SettingsDataStore @Inject constructor(
             persona = prefs[personaKey] ?: "Friendly",
             customPersona = prefs[customPersonaKey].orEmpty(),
             voiceLanguage = prefs[voiceLanguageKey] ?: "en-US",
+            voiceName = prefs[voiceNameKey].orEmpty(),
             voiceSpeed = prefs[voiceSpeedKey] ?: 1f,
             voicePitch = prefs[voicePitchKey] ?: 1f,
             pureBlack = prefs[pureBlackKey] ?: false,
@@ -58,9 +60,10 @@ class SettingsDataStore @Inject constructor(
     override suspend fun updatePersona(preset: String, custom: String) {
         context.zyraPreferences.edit { it[personaKey] = preset; it[customPersonaKey] = custom }
     }
-    override suspend fun updateVoiceSettings(language: String, speed: Float, pitch: Float) {
+    override suspend fun updateVoiceSettings(language: String, speed: Float, pitch: Float, voiceName: String) {
         context.zyraPreferences.edit {
             it[voiceLanguageKey] = language.trim().ifBlank { "en-US" }
+            it[voiceNameKey] = voiceName
             it[voiceSpeedKey] = speed.coerceIn(0.65f, 1.5f)
             it[voicePitchKey] = pitch.coerceIn(0.7f, 1.4f)
         }
