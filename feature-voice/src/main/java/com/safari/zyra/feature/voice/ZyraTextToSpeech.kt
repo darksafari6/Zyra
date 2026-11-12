@@ -140,12 +140,12 @@ class ZyraTextToSpeech @Inject constructor(@ApplicationContext context: Context)
     }
 
     private fun cleanForSpeech(source: String): String = source
-        .replace(Regex("""https?://\\S+|www\\.\\S+""", RegexOption.IGNORE_CASE), "link")
-        .replace(Regex("""\\*\\*(.*?)\\*\\*"""), "$1")
-        .replace(Regex("[*_~`]"), "")
-        .replace(Regex("""[\\uD83C-\\uDBFF][\\uDC00-\\uDFFF]"""), "")
-        .replace(Regex("""[\\uFE0E\\uFE0F\\u200D]"""), "")
-        .replace(Regex("""\\s+"""), " ")
+        .replace(Regex("""https?://\S+|www\.\S+""", RegexOption.IGNORE_CASE), "link")
+        .replace(Regex("""\*\*(.*?)\*\*"""), "$1")
+        .replace(Regex("[*_~\u0060]"), "")
+        .replace(Regex("""[\uD83C-\uDBFF][\uDC00-\uDFFF]"""), "")
+        .replace(Regex("""[\uFE0E\uFE0F\u200D]"""), "")
+        .replace(Regex("""\s+"""), " ")
         .trim()
 
     private data class SpeechRequest(val text: String, val language: String, val speed: Float, val pitch: Float)
