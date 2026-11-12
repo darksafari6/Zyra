@@ -9,6 +9,7 @@ import com.safari.zyra.core.data.security.ApiKeyStore
 import com.safari.zyra.core.data.settings.ZyraSettings
 import com.safari.zyra.core.network.GeminiModel
 import com.safari.zyra.core.network.GeminiModelCatalog
+import com.safari.zyra.core.network.GeminiClient
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -25,7 +26,8 @@ data class SettingsUiState(
     val messages: List<ChatMessage> = emptyList(),
     val loadingModels: Boolean = false,
     val error: String? = null,
-    val saved: Boolean = false
+    val saved: Boolean = false,
+    val testResult: String? = null
 )
 
 @HiltViewModel
@@ -33,6 +35,7 @@ class SettingsViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val keyStore: ApiKeyStore,
     private val catalog: GeminiModelCatalog,
+    private val geminiClient: GeminiClient,
     private val chatRepository: ChatRepository
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(SettingsUiState())
@@ -55,6 +58,19 @@ class SettingsViewModel @Inject constructor(
             } catch (failure: Exception) {
                 mutableState.update { it.copy(loadingModels = false, error = failure.message ?: "Could not load models.") }
             }
+        }
+    }
+
+    fun testConnection() {
+        val current = mutableState.value
+        if (!current.hasApiKey || current.settings.textModelId.isBlank()) {
+            mutableState.update { it.copy(error = "Save an API key and choose a text model first.") }
+            return
+        }
+        viewModelScope.launch {
+            mutableState.update { it.copy(testResult = "Testing…", error = null) }
+            val result = runCatching { geminiClient.testConnection(keyStore.read(), current.settings.textModelId, current.settings.systemPrompt) }
+            mutableState.update { it.copy(testResult = result.fold({ "Connected: ${it.trim()}" }, { it.message ?: "Connection failed." })) }
         }
     }
 
