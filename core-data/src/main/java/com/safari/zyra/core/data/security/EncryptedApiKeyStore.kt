@@ -19,9 +19,9 @@ import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 
 private val Context.secretPreferences by preferencesDataStore(name = "zyra_secure_values")
 
@@ -59,9 +59,7 @@ class EncryptedApiKeyStore @Inject constructor(
     }
 
     private fun readStored(): String = runBlocking(Dispatchers.IO) {
-        val stored = context.secretPreferences.data.let { flow ->
-            kotlinx.coroutines.flow.first(flow)[encryptedKey].orEmpty()
-        }
+        val stored = context.secretPreferences.data.first()[encryptedKey].orEmpty()
         if (stored.isNotBlank()) return@runBlocking decrypt(stored)
         val legacy = runCatching { legacyPreferences()?.getString(KEY_GEMINI, "").orEmpty() }.getOrDefault("")
         if (legacy.isBlank()) return@runBlocking ""
