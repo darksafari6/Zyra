@@ -1,5 +1,6 @@
 package com.safari.zyra.feature.settings
 
+import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.safari.zyra.core.data.SettingsRepository
@@ -11,7 +12,9 @@ import com.safari.zyra.core.network.GeminiModel
 import com.safari.zyra.core.network.GeminiModelCatalog
 import com.safari.zyra.core.network.GeminiClient
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
+import java.io.File
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -32,6 +35,7 @@ data class SettingsUiState(
 
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
+    @ApplicationContext private val context: Context,
     private val settingsRepository: SettingsRepository,
     private val keyStore: ApiKeyStore,
     private val catalog: GeminiModelCatalog,
@@ -95,7 +99,7 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    fun clearHistory() { viewModelScope.launch { chatRepository.clearAll(); mutableState.update { it.copy(messages = emptyList()) } } }
+    fun clearHistory() { viewModelScope.launch { chatRepository.clearAll(); File(context.filesDir, "zyra_images").deleteRecursively(); mutableState.update { it.copy(messages = emptyList()) } } }
     fun completeOnboardingAgain() { viewModelScope.launch { settingsRepository.setOnboardingCompleted(false) } }
 
     fun exportMarkdown(): String = buildString {
