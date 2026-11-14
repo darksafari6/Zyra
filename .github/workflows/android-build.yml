@@ -4,6 +4,7 @@ on:
   pull_request:
     branches: [main, piece-7-completion, piece-8-zyra-everywhere]
   push:
+    branches: [main]
     tags:
       - "v*"
 
@@ -16,7 +17,7 @@ concurrency:
 
 jobs:
   verify:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
