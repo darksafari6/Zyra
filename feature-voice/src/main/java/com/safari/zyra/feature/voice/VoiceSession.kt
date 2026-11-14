@@ -156,7 +156,7 @@ class VoiceSession @Inject constructor(
 
     private fun flushSentence(language: String, speed: Float, pitch: Float, voiceName: String) {
         sentenceBuffer.toString().trim().takeIf { it.isNotBlank() }?.let { sentence ->
-            tts.speak(sentence, language, speed, pitch)
+            tts.speak(sentence, language, speed, pitch, voiceName)
             armBargeIn(language)
         }
         sentenceBuffer.clear()
