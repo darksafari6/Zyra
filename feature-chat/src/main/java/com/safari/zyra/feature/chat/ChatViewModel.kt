@@ -72,7 +72,7 @@ class ChatViewModel @Inject constructor(
 
     fun startVoice() { if (!mutableState.value.isStreaming) { liveVoiceSession.stop(); voiceSession.startListening(activeConversationId.value) } }
     fun stopVoice() = voiceSession.stop()
-    fun startLiveVoice() { if (!mutableState.value.isStreaming) { voiceSession.stop(); liveVoiceSession.start() } }
+    fun startLiveVoice() { if (!mutableState.value.isStreaming) { voiceSession.stop(); liveVoiceSession.start(activeConversationId.value) } }
     fun stopLiveVoice() = liveVoiceSession.stop()
     fun stopSpeaking() = voiceSession.stopSpeaking()
     fun confirmToolAction(id: String) {
