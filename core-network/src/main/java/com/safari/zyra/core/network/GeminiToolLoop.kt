@@ -2,7 +2,6 @@ package com.safari.zyra.core.network
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.collect
-import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
@@ -32,10 +31,11 @@ class GeminiToolLoop(
         val history = initial.toMutableList()
         val limit = maxIterations.coerceIn(1, 8)
         repeat(limit) { iteration ->
-            val parts = withTimeout(callTimeoutMillis) {
-                model.generate(history.toList(), declarations).toList()
+            val parts = mutableListOf<GeminiPart>()
+            model.generate(history.toList(), declarations).collect { part ->
+                parts += part
+                if (part is GeminiPart.Text) emit(part.value)
             }
-            parts.filterIsInstance<GeminiPart.Text>().forEach { emit(it.value) }
             val calls = parts.filterIsInstance<GeminiPart.FunctionCall>()
             if (calls.isEmpty()) return@flow
             if (iteration == limit - 1) {
