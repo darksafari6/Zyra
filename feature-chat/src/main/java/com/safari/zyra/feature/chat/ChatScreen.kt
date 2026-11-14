@@ -129,7 +129,14 @@ fun ChatScreen(
                 Text(if (pending.risk.name == "HIGH") "Confirm this exact action" else "Allow this tool for this session", style = MaterialTheme.typography.titleLarge)
                 Text(pending.preview)
                 if (pending.requiredPermissions.isNotEmpty()) {
-                    Text("Android permission required: " + pending.requiredPermissions.joinToString())
+                    pending.requiredPermissions.forEach { permission ->
+                        Text(when (permission) {
+                            Manifest.permission.CAMERA -> "Camera permission is used only to control the flashlight; Zyra does not take photos."
+                            Manifest.permission.ACCESS_COARSE_LOCATION -> "Approximate location is used only when you ask Zyra for your current location. The result may be cached."
+                            Manifest.permission.CALL_PHONE -> "Phone permission would be used only for a direct call you explicitly enabled."
+                            else -> "Android permission required: " + permission
+                        })
+                    }
                     Text("Android will show its permission prompt only after you confirm.")
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
