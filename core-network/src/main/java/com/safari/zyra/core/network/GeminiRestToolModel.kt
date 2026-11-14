@@ -64,8 +64,8 @@ class GeminiRestToolModel @Inject constructor(private val http: HttpClient) {
             setBody(body.toString())
         }
         if (response.status != HttpStatusCode.OK) {
-            val error = response.bodyAsChannel().readUTF8Line().orEmpty()
-            error("Gemini function-calling request failed (HTTP " + response.status.value + "): " + error.take(400))
+            val errorLine = response.bodyAsChannel().readUTF8Line().orEmpty()
+            kotlin.error("Gemini function-calling request failed (HTTP " + response.status.value + "): " + errorLine.take(400))
         }
         val channel = response.bodyAsChannel()
         val groundingSources = linkedSetOf<Pair<String, String>>()
