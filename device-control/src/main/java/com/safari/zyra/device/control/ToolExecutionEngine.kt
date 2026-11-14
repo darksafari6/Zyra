@@ -91,7 +91,7 @@ class ToolExecutionEngine @Inject constructor(
         "${tool.description}\nRequested details: ${args.toString().take(500)}"
 
     private fun auditPreview(tool: ZyraTool, args: JSONObject): String = when (tool.name) {
-        "call" -> "Dialer handoff requested; phone number redacted."
+        "call", "call_direct" -> "Phone call requested; phone number redacted."
         "message" -> "Message composer requested; recipient and body redacted."
         "clipboard_read", "notification_summary", "current_location" -> "Sensitive read requested; content redacted."
         "remember_fact" -> "Memory write requested; fact value redacted."
