@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.hilt.navigation.compose.hiltViewModel
@@ -137,6 +138,13 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, onRequestA
             Slider(settings.voiceSpeed, { settings = settings.copy(voiceSpeed = it) }, valueRange = .65f..1.5f)
             Text("Pitch: ${"%.2f".format(settings.voicePitch)}×")
             Slider(settings.voicePitch, { settings = settings.copy(voicePitch = it) }, valueRange = .7f..1.4f)
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f)) {
+                    Text(stringResource(R.string.listen_for_stop_title))
+                    Text(stringResource(R.string.listen_for_stop_summary), style = MaterialTheme.typography.bodySmall)
+                }
+                Switch(settings.listenForStopWhileSpeaking, { enabled -> settings = settings.copy(listenForStopWhileSpeaking = enabled) })
+            }
             Button(onClick = {
                 tts.language = Locale.forLanguageTag(settings.voiceLanguage)
                 voices.firstOrNull { it.name == settings.voiceName }?.let(tts::setVoice)
