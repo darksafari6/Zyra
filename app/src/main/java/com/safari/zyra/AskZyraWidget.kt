@@ -16,7 +16,6 @@ import androidx.glance.text.TextStyle
 import androidx.glance.unit.ColorProvider
 import androidx.glance.unit.dp
 import androidx.glance.unit.sp
-import androidx.glance.color.Color
 
 class AskZyraWidget : GlanceAppWidget() {
     @androidx.compose.runtime.Composable
