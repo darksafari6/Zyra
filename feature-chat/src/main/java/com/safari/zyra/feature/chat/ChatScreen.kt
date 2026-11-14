@@ -114,12 +114,16 @@ fun ChatScreen(
     val lowPerformance = remember { PerformanceTier.current(context).usesSimpleMotion }
     val haptic = LocalHapticFeedback.current
     var showMicRationale by remember { mutableStateOf(false) }
+    var requestingLiveVoice by remember { mutableStateOf(false) }
     var showVoiceMode by remember { mutableStateOf(false) }
     val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) {
             viewModel.startVoice()
             showVoiceMode = true
         } else viewModel.voicePermissionDenied()
+    }
+    val liveMicPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) viewModel.startLiveVoice() else viewModel.voicePermissionDenied()
     }
     val listening = state.voiceState is VoiceState.Listening
     LaunchedEffect(listening) {
@@ -357,6 +361,13 @@ fun ChatScreen(
                     }
                 }
             }
+            TextButton(onClick = {
+                if (state.liveVoiceState.status != "Idle") viewModel.stopLiveVoice()
+                else if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) viewModel.startLiveVoice()
+                else { requestingLiveVoice = true; showMicRationale = true }
+            }, enabled = !state.isStreaming) {
+                Text(if (state.liveVoiceState.status == "Idle") "LIVE" else "STOP LIVE", color = ZyraColors.cyan)
+            }
             Spacer(Modifier.width(4.dp))
             JellyOrb(
                 modifier = Modifier.size(42.dp),
@@ -382,6 +393,10 @@ fun ChatScreen(
             }
         }
 
+        if (state.liveVoiceState.status != "Idle") {
+            val liveText = state.liveVoiceState.outputCaption.ifBlank { state.liveVoiceState.inputCaption }.ifBlank { state.liveVoiceState.error.orEmpty() }
+            VoiceStatusBubble("Live · ${state.liveVoiceState.status}", liveText.ifBlank { "Connected to Gemini Live audio." })
+        }
         ContactDock()
         Spacer(Modifier.height(5.dp))
     }
@@ -472,7 +487,9 @@ fun ChatScreen(
             confirmButton = {
                 Button(onClick = {
                     showMicRationale = false
-                    micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                    if (requestingLiveVoice) liveMicPermission.launch(Manifest.permission.RECORD_AUDIO)
+                    else micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                    requestingLiveVoice = false
                 }) { Text("Continue") }
             },
             dismissButton = {
