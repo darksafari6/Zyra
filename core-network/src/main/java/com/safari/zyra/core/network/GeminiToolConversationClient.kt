@@ -20,7 +20,8 @@ class GeminiToolConversationClient @Inject constructor(
         history: List<GeminiTurn>,
         userText: String,
         declarations: List<GeminiFunctionDeclaration>,
-        systemPromptOverride: String? = null
+        systemPromptOverride: String? = null,
+        image: GeminiImage? = null
     ): Flow<String> = flow {
         val config = settings.settings.first()
         val key = apiKeyStore.read()
@@ -30,7 +31,15 @@ class GeminiToolConversationClient @Inject constructor(
                 listOf(GeminiPart.Text(it.text))
             )
         }.toMutableList()
-        turns += GeminiToolTurn("user", listOf(GeminiPart.Text(userText)))
+        val userParts = buildList<GeminiPart> {
+            add(GeminiPart.Text(userText))
+            image?.let { attachment ->
+                add(GeminiPart.Raw(org.json.JSONObject().put("inlineData", org.json.JSONObject()
+                    .put("mimeType", attachment.mimeType)
+                    .put("data", java.util.Base64.getEncoder().encodeToString(attachment.bytes)))))
+            }
+        }
+        turns += GeminiToolTurn("user", userParts)
         val loop = GeminiToolLoop(object : GeminiToolModel {
             override fun generate(
                 contents: List<GeminiToolTurn>,
