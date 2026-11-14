@@ -5,6 +5,7 @@ import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
+import org.json.JSONObject
 import androidx.datastore.preferences.preferencesDataStore
 import com.safari.zyra.core.data.settings.ZyraSettings
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -32,6 +33,11 @@ class SettingsDataStore @Inject constructor(
     private val voicePitchKey = floatPreferencesKey("voice_pitch")
     private val pureBlackKey = booleanPreferencesKey("pure_black")
     private val autoTitleKey = booleanPreferencesKey("auto_title")
+    private val toolsEnabledKey = booleanPreferencesKey("tools_enabled")
+    private val toolTogglesKey = stringPreferencesKey("tool_toggles")
+    private val memoryEnabledKey = booleanPreferencesKey("memory_enabled")
+    private val memoryConsentKey = booleanPreferencesKey("memory_consent_asked")
+    private val googleSearchKey = booleanPreferencesKey("google_search_grounding")
 
     override val reduceEffects: Flow<Boolean> = context.zyraPreferences.data.map { it[reduceEffectsKey] ?: false }
     override val onboardingCompleted: Flow<Boolean> = context.zyraPreferences.data.map { it[onboardingKey] ?: false }
@@ -48,7 +54,15 @@ class SettingsDataStore @Inject constructor(
             voiceSpeed = prefs[voiceSpeedKey] ?: 1f,
             voicePitch = prefs[voicePitchKey] ?: 1f,
             pureBlack = prefs[pureBlackKey] ?: false,
-            autoTitle = prefs[autoTitleKey] ?: false
+            autoTitle = prefs[autoTitleKey] ?: false,
+            toolsEnabled = prefs[toolsEnabledKey] ?: false,
+            toolToggles = runCatching {
+                val json = JSONObject(prefs[toolTogglesKey].orEmpty())
+                buildMap { json.keys().forEach { key -> put(key, json.optBoolean(key, false)) } }
+            }.getOrDefault(emptyMap()),
+            memoryEnabled = prefs[memoryEnabledKey] ?: false,
+            memoryConsentAsked = prefs[memoryConsentKey] ?: false,
+            googleSearchGrounding = prefs[googleSearchKey] ?: false
         )
     }
 
@@ -70,4 +84,19 @@ class SettingsDataStore @Inject constructor(
     }
     override suspend fun setPureBlack(enabled: Boolean) { context.zyraPreferences.edit { it[pureBlackKey] = enabled } }
     override suspend fun setAutoTitle(enabled: Boolean) { context.zyraPreferences.edit { it[autoTitleKey] = enabled } }
+    override suspend fun setToolsEnabled(enabled: Boolean) { context.zyraPreferences.edit { it[toolsEnabledKey] = enabled } }
+    override suspend fun setToolEnabled(name: String, enabled: Boolean) {
+        context.zyraPreferences.edit { prefs ->
+            val json = runCatching { JSONObject(prefs[toolTogglesKey].orEmpty()) }.getOrDefault(JSONObject())
+            json.put(name, enabled)
+            prefs[toolTogglesKey] = json.toString()
+        }
+    }
+    override suspend fun setMemoryConsent(accepted: Boolean) {
+        context.zyraPreferences.edit { prefs -> prefs[memoryConsentKey] = true; prefs[memoryEnabledKey] = accepted }
+    }
+    override suspend fun setMemoryEnabled(enabled: Boolean) {
+        context.zyraPreferences.edit { prefs -> if (prefs[memoryConsentKey] == true) prefs[memoryEnabledKey] = enabled }
+    }
+    override suspend fun setGoogleSearchGrounding(enabled: Boolean) { context.zyraPreferences.edit { it[googleSearchKey] = enabled } }
 }
