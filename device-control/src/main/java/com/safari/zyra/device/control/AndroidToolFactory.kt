@@ -59,7 +59,7 @@ class AndroidToolFactory @Inject constructor(@ApplicationContext private val con
                 ?: return@tool ToolResult.Failed("That app has no launchable activity.")
             launch(intent); ToolResult.Success("Opened the app.")
         },
-        tool("call", "Open the phone dialer with a number. Direct calling is not implemented; the user places the call.", stringSchema("number", "Phone number to dial."), ToolRisk.HIGH) { args ->
+        tool("call", "Open the phone dialer with a number. The user places the call.", stringSchema("number", "Phone number to dial."), ToolRisk.HIGH) { args ->
             val number = ToolArgumentValidator.requiredString(args, "number", 40)
             require(number.matches(Regex("[+0-9*#(). -]{3,40}"))) { "Phone number contains unsupported characters." }
             launch(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null)))
