@@ -16,6 +16,7 @@ kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarg
 dependencies {
     implementation(project(":core-data"))
     implementation(project(":core-network"))
+    implementation(project(":device-control"))
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.hilt.android)
     testImplementation(libs.junit)
