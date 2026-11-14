@@ -39,6 +39,7 @@ class SettingsDataStore @Inject constructor(
     private val memoryConsentKey = booleanPreferencesKey("memory_consent_asked")
     private val googleSearchKey = booleanPreferencesKey("google_search_grounding")
     private val directCallsKey = booleanPreferencesKey("direct_calls_enabled")
+    private val listenForStopKey = booleanPreferencesKey("listen_for_stop_while_speaking")
 
     override val reduceEffects: Flow<Boolean> = context.zyraPreferences.data.map { it[reduceEffectsKey] ?: false }
     override val onboardingCompleted: Flow<Boolean> = context.zyraPreferences.data.map { it[onboardingKey] ?: false }
@@ -64,7 +65,8 @@ class SettingsDataStore @Inject constructor(
             memoryEnabled = prefs[memoryEnabledKey] ?: false,
             memoryConsentAsked = prefs[memoryConsentKey] ?: false,
             googleSearchGrounding = prefs[googleSearchKey] ?: false,
-            directCallsEnabled = prefs[directCallsKey] ?: false
+            directCallsEnabled = prefs[directCallsKey] ?: false,
+            listenForStopWhileSpeaking = prefs[listenForStopKey] ?: false
         )
     }
 
@@ -102,4 +104,5 @@ class SettingsDataStore @Inject constructor(
     }
     override suspend fun setGoogleSearchGrounding(enabled: Boolean) { context.zyraPreferences.edit { it[googleSearchKey] = enabled } }
     override suspend fun setDirectCallsEnabled(enabled: Boolean) { context.zyraPreferences.edit { it[directCallsKey] = enabled } }
+    override suspend fun setListenForStopWhileSpeaking(enabled: Boolean) { context.zyraPreferences.edit { it[listenForStopKey] = enabled } }
 }
