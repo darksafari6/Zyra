@@ -211,6 +211,7 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, onRequestA
             actionEntries.forEach { entry ->
                 Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
                     Text(entry.toolName, style = MaterialTheme.typography.titleSmall)
+                    Text(entry.argumentsSummary, style = MaterialTheme.typography.bodySmall)
                     Text(java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(entry.occurredAt)), style = MaterialTheme.typography.bodySmall)
                     Text(when (entry.result) {
                         is com.safari.zyra.device.control.ToolResult.Success -> "Success: " + entry.result.detail
