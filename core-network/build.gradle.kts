@@ -20,6 +20,7 @@ dependencies {
     api(libs.kotlinx.coroutines.android)
     implementation(libs.hilt.android)
     testImplementation(libs.junit)
+    testImplementation(libs.json)
     testImplementation(libs.ktor.client.mock)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.mockk)
