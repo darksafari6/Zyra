@@ -12,6 +12,9 @@ import com.safari.zyra.core.data.chat.RoomChatRepository
 import com.safari.zyra.core.data.chat.ZyraDatabase
 import com.safari.zyra.core.data.security.ApiKeyStore
 import com.safari.zyra.core.data.security.EncryptedApiKeyStore
+import com.safari.zyra.core.data.memory.MemoryFactDao
+import com.safari.zyra.core.data.memory.MemoryRepository
+import com.safari.zyra.core.data.memory.RoomMemoryRepository
 import com.safari.zyra.core.network.GeminiClient
 import com.safari.zyra.core.network.GeminiRestClient
 import com.safari.zyra.core.network.GeminiLiveClient
@@ -36,6 +39,7 @@ abstract class AppBindingsModule {
     @Binds @Singleton abstract fun bindSettingsRepository(implementation: SettingsDataStore): SettingsRepository
     @Binds @Singleton abstract fun bindChatRepository(implementation: RoomChatRepository): ChatRepository
     @Binds @Singleton abstract fun bindApiKeyStore(implementation: EncryptedApiKeyStore): ApiKeyStore
+    @Binds @Singleton abstract fun bindMemoryRepository(implementation: RoomMemoryRepository): MemoryRepository
     @Binds @Singleton abstract fun bindGeminiClient(implementation: GeminiRestClient): GeminiClient
     @Binds @Singleton abstract fun bindGeminiLiveTransport(implementation: GeminiLiveClient): GeminiLiveTransport
     @Binds @Singleton abstract fun bindLiveAudioEngine(implementation: AndroidLiveAudioEngine): LiveAudioEngine
@@ -44,7 +48,7 @@ abstract class AppBindingsModule {
         @Provides @Singleton
         fun provideDatabase(@ApplicationContext context: Context): ZyraDatabase =
             Room.databaseBuilder(context, ZyraDatabase::class.java, "zyra_chat.db")
-                .addMigrations(ZyraDatabase.MIGRATION_1_2, ZyraDatabase.MIGRATION_2_3)
+                .addMigrations(ZyraDatabase.MIGRATION_1_2, ZyraDatabase.MIGRATION_2_3, ZyraDatabase.MIGRATION_3_4)
                 .addCallback(object : RoomDatabase.Callback() {
                     override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
                         db.execSQL("INSERT OR IGNORE INTO conversations (id, title, createdAt, updatedAt) VALUES (1, 'New chat', 0, 0)")
@@ -54,6 +58,7 @@ abstract class AppBindingsModule {
 
         @Provides fun provideChatDao(database: ZyraDatabase): ChatMessageDao = database.chatMessageDao()
         @Provides fun provideConversationDao(database: ZyraDatabase): ConversationDao = database.conversationDao()
+        @Provides fun provideMemoryFactDao(database: ZyraDatabase): MemoryFactDao = database.memoryFactDao()
 
         @Provides @Singleton
         fun provideHttpClient(): HttpClient = HttpClient(OkHttp) {
