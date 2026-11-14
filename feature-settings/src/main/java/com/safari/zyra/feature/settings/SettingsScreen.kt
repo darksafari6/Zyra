@@ -46,6 +46,8 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, onRequestA
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
     val memoryViewModel: MemoryViewModel = hiltViewModel()
+    val actionLogViewModel: ActionLogViewModel = hiltViewModel()
+    val actionEntries by actionLogViewModel.entries.collectAsState()
     val memoryFacts by memoryViewModel.facts.collectAsState()
     val memoryError by memoryViewModel.error.collectAsState()
     var newMemoryKey by remember { mutableStateOf("") }
@@ -199,6 +201,22 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, onRequestA
                     viewModel.setGoogleSearchGrounding(enabled)
                 })
             }
+        }
+        SettingsSection("Actions log") {
+            if (actionEntries.isEmpty()) Text("No device actions recorded in this app session.")
+            actionEntries.forEach { entry ->
+                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Text(entry.toolName, style = MaterialTheme.typography.titleSmall)
+                    Text(java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss", java.util.Locale.getDefault()).format(java.util.Date(entry.occurredAt)), style = MaterialTheme.typography.bodySmall)
+                    Text(when (entry.result) {
+                        is com.safari.zyra.device.control.ToolResult.Success -> "Success: " + entry.result.detail
+                        is com.safari.zyra.device.control.ToolResult.NeedsUserAction -> "Awaiting confirmation: " + entry.result.detail
+                        is com.safari.zyra.device.control.ToolResult.Denied -> "Denied: " + entry.result.detail
+                        is com.safari.zyra.device.control.ToolResult.Failed -> "Failed: " + entry.result.detail
+                    })
+                }
+            }
+            Text("The current action log is held in memory for this app session; it is not yet persisted across restarts.", style = MaterialTheme.typography.bodySmall)
         }
         SettingsSection("Long-term memory") {
             if (!settings.memoryConsentAsked) {
