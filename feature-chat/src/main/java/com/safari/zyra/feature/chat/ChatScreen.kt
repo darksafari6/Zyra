@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.core.content.ContextCompat
 import com.safari.zyra.feature.voice.VoiceState
+import androidx.compose.material3.TextButton
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.slideInVertically
@@ -111,6 +112,19 @@ fun ChatScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    state.pendingToolAction?.let { pending ->
+        AlertDialog(
+            onDismissRequest = { viewModel.cancelToolAction(pending.id) },
+            title = { Text(if (pending.risk.name == "HIGH") "Confirm this action" else "Allow this tool for this session") },
+            text = { Text(pending.preview) },
+            confirmButton = {
+                Button(onClick = { viewModel.confirmToolAction(pending.id) }) { Text("Confirm") }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.cancelToolAction(pending.id) }) { Text("Cancel") }
+            }
+        )
+    }
     val lowPerformance = remember { PerformanceTier.current(context).usesSimpleMotion }
     val haptic = LocalHapticFeedback.current
     var showMicRationale by remember { mutableStateOf(false) }
