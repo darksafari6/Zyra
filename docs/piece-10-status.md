@@ -28,8 +28,8 @@ Official references:
 ## Still open — do not mark Piece 10 complete
 
 - Gemini Live function calling and safe MEDIUM/HIGH voice confirmations are not wired into the Live WebSocket session.
-- Live session resumption is not implemented. The current Live path reports GoAway/failure; automatic resumption or Fast-voice fallback remains to be implemented and device-tested.
-- The system assistant session still needs a verified compact translucent-sheet treatment and on-device validation.
+- Live session resumption is not implemented. Since the current Android transport does not retain resumption handles, GoAway, socket failure and capture/network failure now stop Live and start Fast voice in the active conversation with a visible status message. Google supports session resumption, so a future implementation should prefer that when a valid handle is available.
+- The system assistant session now uses a compact rounded translucent-styled content surface, but its actual system-window sizing/translucency still needs on-device validation.
 - Temperature and maxOutputTokens are not yet configurable in Settings or applied consistently to text, tool and Live requests.
 - SettingsScreen and OnboardingScreen still contain hardcoded English strings; complete resource extraction and Urdu localization are not done.
 - No OFL display/body fonts have been bundled yet; Typography still needs the font-family integration.
