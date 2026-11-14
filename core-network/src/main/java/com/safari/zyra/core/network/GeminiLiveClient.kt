@@ -7,6 +7,7 @@ import io.ktor.http.URLProtocol
 import io.ktor.websocket.Frame
 import io.ktor.websocket.WebSocketSession
 import io.ktor.websocket.send
+import io.ktor.websocket.readText
 import java.io.Closeable
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
@@ -55,7 +56,7 @@ class GeminiLiveClient @Inject constructor(
             url {
                 protocol = URLProtocol.WSS
                 host = "generativelanguage.googleapis.com"
-                encodedPath = "/ws/google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent"
+                path("ws", "google.ai.generativelanguage.v1beta.GenerativeService.BidiGenerateContent")
                 parameters.append("key", apiKey)
             }
         }
