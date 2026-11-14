@@ -66,12 +66,20 @@ class AndroidToolFactory @Inject constructor(@ApplicationContext private val con
         tool("message", "Prefill an SMS message; the user must press Send.", JSONObject()
             .put("type", "OBJECT").put("properties", JSONObject()
                 .put("number", JSONObject().put("type", "STRING"))
-                .put("message", JSONObject().put("type", "STRING")))
+                .put("message", JSONObject().put("type", "STRING"))
+                .put("channel", JSONObject().put("type", "STRING").put("enum", JSONArray().put("sms").put("whatsapp"))))
             .put("required", JSONArray().put("number").put("message")), ToolRisk.HIGH) { args ->
             val number = ToolArgumentValidator.requiredString(args, "number", 40)
             val body = ToolArgumentValidator.requiredString(args, "message", 2000)
-            launch(Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:${Uri.encode(number)}")).putExtra("sms_body", body))
-            ToolResult.Success("Opened the SMS composer with the recipient and message; review it and tap Send.")
+            if (args.optString("channel").equals("whatsapp", true)) {
+                val digits = number.filter { it.isDigit() }
+                require(digits.length >= 7) { "Enter a full international phone number for WhatsApp." }
+                launch(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/" + digits + "?text=" + Uri.encode(body))))
+                ToolResult.Success("Opened the WhatsApp chat with a prefilled message; review it and tap Send.")
+            } else {
+                launch(Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:" + Uri.encode(number))).putExtra("sms_body", body))
+                ToolResult.Success("Opened the SMS composer with the recipient and message; review it and tap Send.")
+            }
         },
         tool("set_alarm", "Open the system alarm app to create an alarm.", JSONObject()
             .put("type", "OBJECT").put("properties", JSONObject()
