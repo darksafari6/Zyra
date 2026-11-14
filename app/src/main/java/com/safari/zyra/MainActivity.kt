@@ -25,8 +25,6 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -43,6 +41,7 @@ import com.safari.zyra.feature.chat.ChatScreen
 import com.safari.zyra.feature.onboarding.OnboardingScreen
 import com.safari.zyra.feature.settings.SettingsScreen
 import com.safari.zyra.feature.voice.VoiceSession
+import com.safari.zyra.feature.voice.LiveVoiceSession
 import com.safari.zyra.assistant.service.ZyraAssistantService
 import com.safari.zyra.ui.splash.ZyraSplash
 import dagger.hilt.android.AndroidEntryPoint
@@ -55,6 +54,7 @@ class MainActivity : ComponentActivity() {
     private var sharedText by mutableStateOf<String?>(null)
     private var sharedImage by mutableStateOf<Uri?>(null)
     @Inject lateinit var voiceSession: VoiceSession
+    @Inject lateinit var liveVoiceSession: LiveVoiceSession
     @Inject lateinit var settingsRepository: SettingsRepository
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -103,6 +103,7 @@ class MainActivity : ComponentActivity() {
 
     private fun stopAllAssistantActivity() {
         voiceSession.stop()
+        liveVoiceSession.stop()
         stopService(Intent(this, com.safari.zyra.assistant.service.ZyraAssistantService::class.java))
     }
 
@@ -126,6 +127,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onStop() {
         voiceSession.stop()
+        liveVoiceSession.stop()
         super.onStop()
     }
 }
