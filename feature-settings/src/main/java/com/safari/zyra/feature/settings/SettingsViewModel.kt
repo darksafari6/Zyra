@@ -8,6 +8,7 @@ import com.safari.zyra.core.data.chat.ChatMessage
 import com.safari.zyra.core.data.chat.ChatRepository
 import com.safari.zyra.core.data.security.ApiKeyStore
 import com.safari.zyra.core.data.settings.ZyraSettings
+import com.safari.zyra.device.control.ZyraNotificationListener
 import com.safari.zyra.core.network.GeminiModel
 import com.safari.zyra.core.network.GeminiModelCatalog
 import com.safari.zyra.core.network.GeminiClient
@@ -46,7 +47,10 @@ class SettingsViewModel @Inject constructor(
     val state: StateFlow<SettingsUiState> = mutableState.asStateFlow()
 
     init {
-        viewModelScope.launch { settingsRepository.settings.collect { value -> mutableState.update { it.copy(settings = value) } } }
+        viewModelScope.launch { settingsRepository.settings.collect { value ->
+            ZyraNotificationListener.captureEnabled = value.toolsEnabled && value.toolToggles["notification_summary"] == true
+            mutableState.update { it.copy(settings = value) }
+        } }
         viewModelScope.launch { settingsRepository.reduceEffects.collect { value -> mutableState.update { it.copy(reduceEffects = value) } } }
         viewModelScope.launch { keyStore.hasKey.collect { value -> mutableState.update { it.copy(hasApiKey = value) } } }
         viewModelScope.launch { chatRepository.allMessages.collect { value -> mutableState.update { it.copy(messages = value) } } }
