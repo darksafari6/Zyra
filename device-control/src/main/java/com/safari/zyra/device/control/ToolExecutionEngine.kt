@@ -33,6 +33,7 @@ class ToolExecutionEngine @Inject constructor(
 
     suspend fun executeTool(name: String, arguments: JSONObject): ToolResult {
         val tool = registry.get(name) ?: return ToolResult.Denied("This tool is not available.")
+        if (pendingState.value != null) return ToolResult.NeedsUserAction("Another action is already waiting for your confirmation. Confirm or cancel it first.")
         val current = settings.settings.first()
         val policyResult = policy.evaluate(tool, current, confirmedMedium)
         if (policyResult != null) {
