@@ -16,4 +16,9 @@ interface SettingsRepository {
     suspend fun updateVoiceSettings(language: String, speed: Float, pitch: Float, voiceName: String = "")
     suspend fun setPureBlack(enabled: Boolean)
     suspend fun setAutoTitle(enabled: Boolean)
+    suspend fun setToolsEnabled(enabled: Boolean)
+    suspend fun setToolEnabled(name: String, enabled: Boolean)
+    suspend fun setMemoryConsent(accepted: Boolean)
+    suspend fun setMemoryEnabled(enabled: Boolean)
+    suspend fun setGoogleSearchGrounding(enabled: Boolean)
 }
