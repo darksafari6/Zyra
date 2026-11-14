@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 import java.util.UUID
@@ -69,8 +70,13 @@ class ToolExecutionEngine @Inject constructor(
 
     private suspend fun runTool(tool: ZyraTool, args: JSONObject): ToolResult {
         val id = UUID.randomUUID().toString()
-        val result = runCatching { withTimeout(12_000) { tool.execute(args) } }
-            .getOrElse { failure -> ToolResult.Failed(failure.message ?: "The action timed out or failed.") }
+        val result = try {
+            withTimeout(12_000) { tool.execute(args) }
+        } catch (cancelled: CancellationException) {
+            throw cancelled
+        } catch (failure: Exception) {
+            ToolResult.Failed(failure.message ?: "The action timed out or failed.")
+        }
         val auditResult = if (tool.name in setOf("clipboard_read", "notification_summary", "current_location") &&
             result is ToolResult.Success) ToolResult.Success("Sensitive data was accessed at the user's request; contents omitted from the action log.")
         else result
