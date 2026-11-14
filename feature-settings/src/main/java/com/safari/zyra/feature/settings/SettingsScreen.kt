@@ -171,6 +171,7 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, onRequestA
                 Triple("calendar_event", "Create calendar event form", "MEDIUM"),
                 Triple("flashlight", "Flashlight", "MEDIUM"),
                 Triple("volume", "Media volume", "MEDIUM"),
+                Triple("media_control", "Media play / pause / next / previous", "MEDIUM"),
                 Triple("navigation", "Open navigation", "LOW"),
                 Triple("device_info", "Battery and connectivity info", "LOW"),
                 Triple("wifi_settings", "Open Wi-Fi settings panel", "LOW"),
