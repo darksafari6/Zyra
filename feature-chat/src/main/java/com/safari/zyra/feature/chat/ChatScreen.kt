@@ -9,7 +9,8 @@ import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
-import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Button
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -112,39 +113,39 @@ fun ChatScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
     var permissionActionId by remember { mutableStateOf<String?>(null) }
+    val toolSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
     val toolPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
         val id = permissionActionId
         permissionActionId = null
         if (id != null && results.values.all { it }) viewModel.confirmToolAction(id)
     }
     state.pendingToolAction?.let { pending ->
-        AlertDialog(
+        ModalBottomSheet(
             onDismissRequest = { viewModel.cancelToolAction(pending.id) },
-            title = { Text(if (pending.risk.name == "HIGH") "Confirm this action" else "Allow this tool for this session") },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text(pending.preview)
-                    if (pending.requiredPermissions.isNotEmpty()) {
-                        Text("Android permission required: " + pending.requiredPermissions.joinToString())
-                    }
+            sheetState = toolSheetState
+        ) {
+            Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(if (pending.risk.name == "HIGH") "Confirm this exact action" else "Allow this tool for this session", style = MaterialTheme.typography.titleLarge)
+                Text(pending.preview)
+                if (pending.requiredPermissions.isNotEmpty()) {
+                    Text("Android permission required: " + pending.requiredPermissions.joinToString())
+                    Text("Android will show its permission prompt only after you confirm.")
                 }
-            },
-            confirmButton = {
-                Button(onClick = {
-                    val missing = pending.requiredPermissions.filter {
-                        ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
-                    }
-                    if (missing.isEmpty()) viewModel.confirmToolAction(pending.id)
-                    else {
-                        permissionActionId = pending.id
-                        toolPermissionLauncher.launch(missing.toTypedArray())
-                    }
-                }) { Text("Confirm") }
-            },
-            dismissButton = {
-                TextButton(onClick = { viewModel.cancelToolAction(pending.id) }) { Text("Cancel") }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(onClick = {
+                        val missing = pending.requiredPermissions.filter {
+                            ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+                        }
+                        if (missing.isEmpty()) viewModel.confirmToolAction(pending.id)
+                        else {
+                            permissionActionId = pending.id
+                            toolPermissionLauncher.launch(missing.toTypedArray())
+                        }
+                    }, modifier = Modifier.weight(1f)) { Text("Confirm") }
+                    TextButton(onClick = { viewModel.cancelToolAction(pending.id) }, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                }
             }
-        )
+        }
     }
     val lowPerformance = remember { PerformanceTier.current(context).usesSimpleMotion }
     val haptic = LocalHapticFeedback.current
