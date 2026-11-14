@@ -178,6 +178,38 @@ class AndroidToolFactory @Inject constructor(@ApplicationContext private val con
         tool("bluetooth_settings", "Open Android Bluetooth settings. Android controls the Bluetooth switch.", JSONObject().put("type", "OBJECT").put("properties", JSONObject()), ToolRisk.LOW) {
             launch(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)); ToolResult.Success("Opened Android Bluetooth settings. Change Bluetooth there.")
         },
+        tool("current_location", "Read the most recent device location only when the user asks.", JSONObject()
+            .put("type", "OBJECT").put("properties", JSONObject()), ToolRisk.MEDIUM, setOf(Manifest.permission.ACCESS_COARSE_LOCATION)) {
+            val manager = context.getSystemService(android.location.LocationManager::class.java)
+            val location = manager.getProviders(true).asSequence()
+                .mapNotNull { provider -> runCatching { manager.getLastKnownLocation(provider) }.getOrNull() }
+                .maxByOrNull { it.time }
+                ?: return@tool ToolResult.Failed("No recent location is available. Enable device location and try again.")
+            ToolResult.Success("Most recent location: latitude ${location.latitude}, longitude ${location.longitude}. Accuracy: ${location.accuracy.toInt()} metres. This may be cached, not live GPS.")
+        },
+        tool("clipboard_read", "Read clipboard text only when the user explicitly asks.", JSONObject()
+            .put("type", "OBJECT").put("properties", JSONObject()), ToolRisk.HIGH) {
+            val clipboard = context.getSystemService(android.content.ClipboardManager::class.java)
+            if (!clipboard.hasPrimaryClip()) return@tool ToolResult.Failed("The clipboard is empty.")
+            val value = clipboard.primaryClip?.getItemAt(0)?.coerceToText(context)?.toString().orEmpty()
+            if (value.isBlank()) ToolResult.Failed("The clipboard has no readable text.")
+            else ToolResult.Success(value.take(1_000))
+        },
+        tool("notification_summary", "Summarize recent notification text after the user enables notification access.", JSONObject()
+            .put("type", "OBJECT").put("properties", JSONObject()), ToolRisk.MEDIUM) {
+            val enabled = Settings.Secure.getString(context.contentResolver, "enabled_notification_listeners").orEmpty()
+                .contains(context.packageName)
+            if (!enabled) {
+                launch(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS))
+                return@tool ToolResult.NeedsUserAction("Opened Android Notification access settings. Enable Zyra there, then ask for a notification summary again.")
+            }
+            val items = ZyraNotificationListener.items.value
+            if (items.isEmpty()) ToolResult.Success("No recent notification text is available.")
+            else ToolResult.Success(items.take(15).joinToString("\\n") {
+                val time = java.text.SimpleDateFormat("HH:mm", java.util.Locale.getDefault()).format(java.util.Date(it.postedAt))
+                time + " · " + it.packageName + " · " + it.title + ": " + it.text
+            }.take(4_000))
+        },
         tool("brightness", "Set screen brightness from 0 to 100 percent.", JSONObject()
             .put("type", "OBJECT").put("properties", JSONObject().put("percent", JSONObject().put("type", "INTEGER")))
             .put("required", JSONArray().put("percent")), ToolRisk.MEDIUM) { args ->
