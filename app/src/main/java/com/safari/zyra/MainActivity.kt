@@ -1,6 +1,11 @@
 package com.safari.zyra
 
 import android.Manifest
+import android.app.role.RoleManager
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
 import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
@@ -20,6 +25,8 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -44,7 +51,9 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
-    private companion object { const val REQUEST_VOICE_PERMISSION = 8302 }
+    private companion object { const val REQUEST_VOICE_PERMISSION = 8302; const val REQUEST_ASSISTANT_ROLE = 8304 }
+    private var sharedText by mutableStateOf<String?>(null)
+    private var sharedImage by mutableStateOf<Uri?>(null)
     @Inject lateinit var voiceSession: VoiceSession
     @Inject lateinit var settingsRepository: SettingsRepository
 
@@ -52,9 +61,13 @@ class MainActivity : ComponentActivity() {
         installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        handleSharedContent(intent)
+        ZyraShortcuts.publish(this)
         setContent {
             val appearance by settingsRepository.settings.collectAsState(initial = ZyraSettings())
-            ZyraTheme(pureBlack = appearance.pureBlack) { ZyraNavigation(settingsRepository) }
+            ZyraTheme(pureBlack = appearance.pureBlack) {
+                ZyraNavigation(settingsRepository, sharedText, sharedImage, ::clearSharedContent, ::requestAssistantRole, ::stopAllAssistantActivity)
+            }
         }
         handleVoiceLaunch(intent)
     }
@@ -63,6 +76,34 @@ class MainActivity : ComponentActivity() {
         super.onNewIntent(intent)
         setIntent(intent)
         handleVoiceLaunch(intent)
+        handleSharedContent(intent)
+    }
+
+    private fun handleSharedContent(source: Intent?) {
+        val shared = parseSharedContent(source) ?: return
+        sharedText = shared.text
+        sharedImage = shared.image
+    }
+
+    private fun clearSharedContent() {
+        sharedText = null
+        sharedImage = null
+    }
+
+    private fun requestAssistantRole() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val manager = getSystemService(RoleManager::class.java)
+            if (manager != null && manager.isRoleAvailable(RoleManager.ROLE_ASSISTANT)) {
+                startActivityForResult(manager.createRequestRoleIntent(RoleManager.ROLE_ASSISTANT), REQUEST_ASSISTANT_ROLE)
+                return
+            }
+        }
+        runCatching { startActivity(Intent(Settings.ACTION_MANAGE_DEFAULT_APPS_SETTINGS)) }
+    }
+
+    private fun stopAllAssistantActivity() {
+        voiceSession.stop()
+        stopService(Intent(this, com.safari.zyra.assistant.service.ZyraAssistantService::class.java))
     }
 
     private fun handleVoiceLaunch(source: android.content.Intent?) {
@@ -96,7 +137,14 @@ private object ZyraRoutes {
 }
 
 @Composable
-private fun ZyraNavigation(settingsRepository: SettingsRepository) {
+private fun ZyraNavigation(
+    settingsRepository: SettingsRepository,
+    sharedText: String?,
+    sharedImage: Uri?,
+    onSharedContentConsumed: () -> Unit,
+    onRequestAssistantRole: () -> Unit,
+    onStopAssistant: () -> Unit
+) {
     val navController = rememberNavController()
     val onboardingComplete by settingsRepository.onboardingCompleted.collectAsState(initial = false)
     var introComplete by remember { mutableStateOf(false) }
@@ -112,14 +160,21 @@ private fun ZyraNavigation(settingsRepository: SettingsRepository) {
             val start = if (onboardingComplete) ZyraRoutes.CHAT else ZyraRoutes.ONBOARDING
             NavHost(navController = navController, startDestination = start) {
                 composable(ZyraRoutes.CHAT, enterTransition = { fadeIn(tween(260)) + scaleIn(initialScale = .96f, animationSpec = tween(260)) }, exitTransition = { fadeOut(tween(180)) + scaleOut(targetScale = .98f, animationSpec = tween(180)) }) {
-                    ChatScreen(onOpenSettings = { navController.navigate(ZyraRoutes.SETTINGS) })
+                    ChatScreen(
+                        onOpenSettings = { navController.navigate(ZyraRoutes.SETTINGS) },
+                        sharedText = sharedText,
+                        sharedImage = sharedImage,
+                        onSharedContentConsumed = onSharedContentConsumed
+                    )
                 }
                 composable(ZyraRoutes.SETTINGS, enterTransition = { fadeIn(tween(260)) + scaleIn(initialScale = .96f, animationSpec = tween(260)) }, popExitTransition = { fadeOut(tween(180)) + scaleOut(targetScale = .98f, animationSpec = tween(180)) }) {
                     SettingsScreen(
                         onBack = { navController.popBackStack() },
                         onRerunOnboarding = {
                             navController.navigate(ZyraRoutes.ONBOARDING)
-                        }
+                        },
+                        onRequestAssistantRole = onRequestAssistantRole,
+                        onStopAssistant = onStopAssistant
                     )
                 }
                 composable(ZyraRoutes.ONBOARDING) {
