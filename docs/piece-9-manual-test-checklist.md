@@ -20,6 +20,9 @@
 - [ ] Brightness without WRITE_SETTINGS opens the special-access screen; retry after granting and verify brightness range.
 - [ ] Wi-Fi and Bluetooth actions open system settings and do not silently change radio state.
 - [ ] Unsupported intent handler: tool reports failure instead of claiming success.
+- [ ] Current location asks for coarse permission only after confirmation; check approximate/cached location messaging and denial.
+- [ ] Clipboard tool is not declared unless the prompt explicitly asks to read the clipboard; confirm exact action each time and verify contents are absent from the action log.
+- [ ] Notification capture remains empty when global/tool toggles are off; enable notification access, opt in, and verify summaries contain recent notifications only.
 - [ ] Stop the app process and verify the session-only action log is cleared.
 
 ## Memory and privacy
@@ -50,6 +53,6 @@
 
 ## Known deferred items
 
-- Direct calling, notification-listener summaries, current-location reads and clipboard reads are not implemented.
-- Persistent action log, robust permission-rationale history and background-safe notification service are not implemented.
+- Direct calling is intentionally disabled; the dialer handoff remains user-controlled.
+- Persistent action log and durable notification history are not implemented; notification summary uses a bounded in-memory list.
 - AccessibilityService automation is intentionally out of scope.
