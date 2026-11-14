@@ -27,6 +27,13 @@ sealed interface GeminiLiveEvent {
     data class Failure(val message: String) : GeminiLiveEvent
 }
 
+interface GeminiLiveTransport : java.io.Closeable {
+    override suspend fun connect(apiKey: String, modelId: String, systemInstruction: String)
+    override suspend fun sendPcm16kMono(pcm: ByteArray)
+    override suspend fun sendText(text: String)
+    override fun events(): Flow<GeminiLiveEvent>
+}
+
 /**
  * Low-level Gemini Live transport. Audio capture/playback deliberately lives outside
  * this class so the Android microphone is never opened as a side effect of connecting.
@@ -36,7 +43,7 @@ sealed interface GeminiLiveEvent {
 @Singleton
 class GeminiLiveClient @Inject constructor(
     private val httpClient: HttpClient
-) : Closeable {
+) : GeminiLiveTransport {
     private var socket: WebSocketSession? = null
     private val connected = AtomicBoolean(false)
 
