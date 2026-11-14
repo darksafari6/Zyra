@@ -15,6 +15,7 @@ kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarg
 dependencies {
     api(libs.ktor.client.core)
     api(libs.ktor.client.okhttp)
+    api(libs.ktor.client.websockets)
     api(libs.kotlinx.coroutines.android)
     implementation(libs.hilt.android)
     testImplementation(libs.junit)
