@@ -37,7 +37,7 @@ fun JellyOrb(
     val targetX = if (idle) 1.025f else 1f
     val targetY = if (idle) .98f else 1f
     val sx by animateFloatAsState(targetX, if (reduceEffects) tween(0) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "orbScaleX")
-    val sy by animateFloatAsState(targetY, spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "orbScaleY")
+    val sy by animateFloatAsState(targetY, if (reduceEffects) tween(0) else spring(dampingRatio = Spring.DampingRatioMediumBouncy, stiffness = Spring.StiffnessLow), label = "orbScaleY")
     val interaction = if (onClick != null) Modifier.clickable(
         enabled = enabled,
         role = Role.Button,

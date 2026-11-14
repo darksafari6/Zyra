@@ -5,6 +5,9 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
 }
+
+val releaseStorePath = providers.environmentVariable("KEYSTORE_PATH").orNull
+
 android {
     namespace = "com.safari.zyra"
     compileSdk = 36
@@ -12,16 +15,37 @@ android {
         applicationId = "com.safari.zyra"
         minSdk = 28
         targetSdk = 36
-        versionCode = 1
-        versionName = "0.1.0"
+        versionCode = providers.environmentVariable("VERSION_CODE").orNull?.toIntOrNull() ?: 1
+        versionName = "0.2.0"
     }
     buildFeatures { compose = true }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
+
+    if (!releaseStorePath.isNullOrBlank()) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseStorePath)
+                storePassword = providers.environmentVariable("KEYSTORE_PASSWORD").orNull
+                keyAlias = providers.environmentVariable("KEY_ALIAS").orNull
+                keyPassword = providers.environmentVariable("KEY_PASSWORD").orNull
+            }
+        }
+    }
+    buildTypes {
+        debug { }
+        release {
+            isMinifyEnabled = true
+            isShrinkResources = true
+            proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+            if (!releaseStorePath.isNullOrBlank()) signingConfig = signingConfigs.getByName("release")
+        }
+    }
 }
+kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
+
 dependencies {
     implementation(project(":core-ui"))
     implementation(project(":core-data"))
@@ -46,6 +70,7 @@ dependencies {
     implementation(libs.androidx.lifecycle.viewmodel.compose)
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.core.splashscreen)
+    implementation(libs.androidx.glance.appwidget)
     implementation(libs.hilt.android)
     implementation(libs.hilt.navigation.compose)
     ksp(libs.hilt.compiler)

@@ -10,6 +10,8 @@ import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Button
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
@@ -42,12 +44,16 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.selection.SelectionContainer
@@ -64,6 +70,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.LaunchedEffect
@@ -80,9 +87,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.text.SpanStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -90,6 +94,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.safari.zyra.core.ui.brand.JellyOrb
 import com.safari.zyra.core.ui.brand.ZyraLogo
+import com.safari.zyra.core.ui.PerformanceTier
 import com.safari.zyra.core.ui.theme.ZyraColors
 import coil3.compose.AsyncImage
 import java.io.File
@@ -101,18 +106,68 @@ import kotlinx.coroutines.launch
 @Composable
 fun ChatScreen(
     onOpenSettings: () -> Unit,
+    sharedText: String? = null,
+    sharedImage: Uri? = null,
+    onSharedContentConsumed: () -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var permissionActionId by remember { mutableStateOf<String?>(null) }
+    val toolSheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    val toolPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+        val id = permissionActionId
+        permissionActionId = null
+        if (id != null && results.values.all { it }) viewModel.confirmToolAction(id)
+    }
+    state.pendingToolAction?.let { pending ->
+        ModalBottomSheet(
+            onDismissRequest = { viewModel.cancelToolAction(pending.id) },
+            sheetState = toolSheetState
+        ) {
+            Column(Modifier.fillMaxWidth().padding(24.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(if (pending.risk.name == "HIGH") "Confirm this exact action" else "Allow this tool for this session", style = MaterialTheme.typography.titleLarge)
+                Text(pending.preview)
+                if (pending.requiredPermissions.isNotEmpty()) {
+                    pending.requiredPermissions.forEach { permission ->
+                        Text(when (permission) {
+                            Manifest.permission.CAMERA -> "Camera permission is used only to control the flashlight; Zyra does not take photos."
+                            Manifest.permission.ACCESS_COARSE_LOCATION -> "Approximate location is used only when you ask Zyra for your current location. The result may be cached."
+                            Manifest.permission.CALL_PHONE -> "Phone permission would be used only for a direct call you explicitly enabled."
+                            else -> "Android permission required: " + permission
+                        })
+                    }
+                    Text("Android will show its permission prompt only after you confirm.")
+                }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Button(onClick = {
+                        val missing = pending.requiredPermissions.filter {
+                            ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+                        }
+                        if (missing.isEmpty()) viewModel.confirmToolAction(pending.id)
+                        else {
+                            permissionActionId = pending.id
+                            toolPermissionLauncher.launch(missing.toTypedArray())
+                        }
+                    }, modifier = Modifier.weight(1f)) { Text("Confirm") }
+                    TextButton(onClick = { viewModel.cancelToolAction(pending.id) }, modifier = Modifier.weight(1f)) { Text("Cancel") }
+                }
+            }
+        }
+    }
+    val lowPerformance = remember { PerformanceTier.current(context).usesSimpleMotion }
     val haptic = LocalHapticFeedback.current
     var showMicRationale by remember { mutableStateOf(false) }
+    var requestingLiveVoice by remember { mutableStateOf(false) }
     var showVoiceMode by remember { mutableStateOf(false) }
     val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) {
             viewModel.startVoice()
             showVoiceMode = true
         } else viewModel.voicePermissionDenied()
+    }
+    val liveMicPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) viewModel.startLiveVoice() else viewModel.voicePermissionDenied()
     }
     val listening = state.voiceState is VoiceState.Listening
     LaunchedEffect(listening) {
@@ -121,7 +176,17 @@ fun ChatScreen(
     }
     var draft by remember { mutableStateOf("") }
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
+    LaunchedEffect(sharedText, sharedImage) {
+        if (sharedText != null) draft = sharedText
+        if (sharedImage != null) selectedImage = sharedImage
+        if (sharedText != null || sharedImage != null) onSharedContentConsumed()
+    }
     var showAttachMenu by remember { mutableStateOf(false) }
+    var showConversationPanel by remember { mutableStateOf(false) }
+    var searchQuery by remember { mutableStateOf("") }
+    var renameConversationId by remember { mutableStateOf<Long?>(null) }
+    var renameConversationTitle by remember { mutableStateOf("") }
+    var deleteConversationId by remember { mutableStateOf<Long?>(null) }
     val listState = rememberLazyListState()
     val coroutineScope = rememberCoroutineScope()
     val isAtBottom by remember { derivedStateOf { listState.layoutInfo.totalItemsCount == 0 || listState.layoutInfo.visibleItemsInfo.lastOrNull()?.index == listState.layoutInfo.totalItemsCount - 1 } }
@@ -175,6 +240,7 @@ fun ChatScreen(
                     letterSpacing = 1.sp
                 )
             }
+            TextButton(onClick = { showConversationPanel = true }) { Text("Chats", color = ZyraColors.cyan) }
             IconButton(onClick = onOpenSettings) {
                 Icon(painterResource(R.drawable.ic_zyra_settings), contentDescription = "Settings", tint = ZyraColors.text)
             }
@@ -203,9 +269,18 @@ fun ChatScreen(
                     }
                 }
             }
-            items(state.messages, key = { "message_${it.id}" }) { message ->
-                AnimatedVisibility(visible = true, enter = fadeIn() + slideInVertically(initialOffsetY = { it / 5 }), modifier = Modifier.animateItem()) {
-                    MessageBubble(message.role == "user", message.text, message.imagePath, timestamp = message.timestamp, onDelete = { viewModel.deleteMessage(message.id) }, onRegenerate = if (message.role == "assistant") viewModel::regenerateLastReply else null)
+            state.messages.forEachIndexed { index, message ->
+                val dayKey = SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date(message.timestamp))
+                val previousDay = state.messages.getOrNull(index - 1)?.timestamp?.let { SimpleDateFormat("yyyyMMdd", Locale.getDefault()).format(Date(it)) }
+                if (index == 0 || previousDay != dayKey) {
+                    item(key = "day_$dayKey") {
+                        Text(SimpleDateFormat("EEEE, MMM d", Locale.getDefault()).format(Date(message.timestamp)), color = ZyraColors.muted, style = MaterialTheme.typography.labelSmall, modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp))
+                    }
+                }
+                item(key = "message_${message.id}") {
+                    AnimatedVisibility(visible = true, enter = fadeIn() + slideInVertically(initialOffsetY = { it / 5 }), modifier = Modifier.animateItem()) {
+                        MessageBubble(message.role == "user", message.text, message.imagePath, timestamp = message.timestamp, onDelete = { viewModel.deleteMessage(message.id) }, onRegenerate = if (message.role == "assistant") viewModel::regenerateLastReply else null)
+                    }
                 }
             }
             if (state.isStreaming) {
@@ -290,7 +365,7 @@ fun ChatScreen(
                 },
                 enabled = !state.isStreaming,
                 contentDescription = "Voice input",
-                reduceEffects = state.reduceEffects,
+                reduceEffects = state.reduceEffects || lowPerformance,
                 stateDescription = when (state.voiceState) {
                     is VoiceState.Listening -> "Listening"
                     is VoiceState.Thinking -> "Thinking"
@@ -330,10 +405,20 @@ fun ChatScreen(
                     }
                 }
             }
+            TextButton(onClick = {
+                if (state.liveVoiceState.status != "Idle") viewModel.stopLiveVoice()
+                else if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) viewModel.startLiveVoice()
+                else { requestingLiveVoice = true; showMicRationale = true }
+            }, enabled = !state.isStreaming) {
+                Text(if (state.liveVoiceState.status == "Idle") "LIVE" else "STOP LIVE", color = ZyraColors.cyan)
+            }
             Spacer(Modifier.width(4.dp))
             JellyOrb(
                 modifier = Modifier.size(42.dp),
                 enabled = !state.isStreaming && (draft.isNotBlank() || selectedImage != null),
+                contentDescription = "Send message",
+                stateDescription = if (draft.isNotBlank() || selectedImage != null) "Ready to send" else "Nothing to send",
+                reduceEffects = state.reduceEffects || lowPerformance,
                 onClick = {
                     viewModel.sendMessage(draft, selectedImage)
                     draft = ""
@@ -352,29 +437,107 @@ fun ChatScreen(
             }
         }
 
+        if (state.liveVoiceState.status != "Idle") {
+            val liveText = state.liveVoiceState.outputCaption.ifBlank { state.liveVoiceState.inputCaption }.ifBlank { state.liveVoiceState.error.orEmpty() }
+            VoiceStatusBubble("Live · ${state.liveVoiceState.status}", liveText.ifBlank { "Connected to Gemini Live audio." })
+        }
         ContactDock()
         Spacer(Modifier.height(5.dp))
     }
 
     if (showVoiceMode) {
         Dialog(onDismissRequest = { viewModel.stopVoice(); showVoiceMode = false }, properties = DialogProperties(usePlatformDefaultWidth = false, decorFitsSystemWindows = false)) {
-            VoiceModeScreen(state.voiceState, onStop = { viewModel.stopVoice(); showVoiceMode = false }, onDismiss = { viewModel.stopVoice(); showVoiceMode = false })
+            VoiceModeScreen(state.voiceState, reduceEffects = state.reduceEffects || lowPerformance, onStop = { viewModel.stopVoice(); showVoiceMode = false }, onDismiss = { viewModel.stopVoice(); showVoiceMode = false })
         }
+    }
+
+
+    if (showConversationPanel) {
+        AlertDialog(
+            onDismissRequest = { showConversationPanel = false; searchQuery = ""; viewModel.clearSearch() },
+            title = { Text("Conversations") },
+            text = {
+                Column(Modifier.fillMaxWidth().heightIn(max = 480.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    OutlinedTextField(
+                        value = searchQuery,
+                        onValueChange = { searchQuery = it; viewModel.searchMessages(it) },
+                        modifier = Modifier.fillMaxWidth(),
+                        label = { Text("Search all messages") },
+                        singleLine = true
+                    )
+                    if (searchQuery.isNotBlank()) {
+                        state.searchResults.forEach { result ->
+                            TextButton(onClick = {
+                                viewModel.openConversation(result.conversation_id)
+                                showConversationPanel = false
+                                searchQuery = ""
+                                viewModel.clearSearch()
+                            }) {
+                                Text(result.text.take(100).ifBlank { "Image message" }, color = ZyraColors.text)
+                            }
+                        }
+                    } else {
+                        state.conversations.forEach { conversation ->
+                            Column(Modifier.fillMaxWidth().background(ZyraColors.glass, RoundedCornerShape(12.dp)).padding(8.dp)) {
+                                Text(conversation.title, color = ZyraColors.text, fontWeight = FontWeight.SemiBold)
+                                Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                                    TextButton(onClick = { viewModel.openConversation(conversation.id); showConversationPanel = false }) { Text("Open") }
+                                    TextButton(onClick = {
+                                        renameConversationId = conversation.id
+                                        renameConversationTitle = conversation.title
+                                    }) { Text("Rename") }
+                                    TextButton(onClick = { deleteConversationId = conversation.id }) { Text("Delete", color = ZyraColors.error) }
+                                }
+                            }
+                        }
+                    }
+                    Button(onClick = { viewModel.newConversation(); showConversationPanel = false }) { Text("New chat") }
+                }
+            },
+            confirmButton = { TextButton(onClick = { showConversationPanel = false; searchQuery = ""; viewModel.clearSearch() }) { Text("Close") } },
+            containerColor = ZyraColors.surface,
+            titleContentColor = ZyraColors.text,
+            textContentColor = ZyraColors.muted
+        )
+    }
+
+    renameConversationId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { renameConversationId = null },
+            title = { Text("Rename conversation") },
+            text = { OutlinedTextField(renameConversationTitle, { renameConversationTitle = it }, label = { Text("Conversation name") }, singleLine = true) },
+            confirmButton = {
+                TextButton(onClick = { viewModel.renameConversation(id, renameConversationTitle); renameConversationId = null }) { Text("Save") }
+            },
+            dismissButton = { TextButton(onClick = { renameConversationId = null }) { Text("Cancel") } }
+        )
+    }
+
+    deleteConversationId?.let { id ->
+        AlertDialog(
+            onDismissRequest = { deleteConversationId = null },
+            title = { Text("Delete conversation?") },
+            text = { Text("All messages in this conversation will be deleted from this device.") },
+            confirmButton = { TextButton(onClick = { viewModel.deleteConversation(id); deleteConversationId = null }) { Text("Delete", color = ZyraColors.error) } },
+            dismissButton = { TextButton(onClick = { deleteConversationId = null }) { Text("Cancel") } }
+        )
     }
 
     if (showMicRationale) {
         AlertDialog(
-            onDismissRequest = { showMicRationale = false },
+            onDismissRequest = { showMicRationale = false; requestingLiveVoice = false },
             title = { Text("Allow microphone access?") },
-            text = { Text("ZYRA uses your microphone only when you tap the voice orb. The Android speech service may process speech on-device or online, depending on your device and language pack. ZYRA does not save raw microphone recordings. You can revoke access anytime in Android Settings.") },
+            text = { Text("Fast voice uses Android's speech service. Live voice streams microphone audio to Gemini only while Live is active. Zyra does not save raw microphone recordings. Stop Live to end the stream; you can revoke microphone access anytime in Android Settings.") },
             confirmButton = {
                 Button(onClick = {
                     showMicRationale = false
-                    micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                    if (requestingLiveVoice) liveMicPermission.launch(Manifest.permission.RECORD_AUDIO)
+                    else micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                    requestingLiveVoice = false
                 }) { Text("Continue") }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showMicRationale = false }) { Text("Not now") }
+                androidx.compose.material3.TextButton(onClick = { showMicRationale = false; requestingLiveVoice = false }) { Text("Not now") }
             },
             containerColor = ZyraColors.surface,
             titleContentColor = ZyraColors.text,
@@ -386,7 +549,7 @@ fun ChatScreen(
 @Composable
 private fun VoiceStatusBubble(title: String, body: String) {
     Surface(
-        color = Color(0xCC101522),
+        color = ZyraColors.glass,
         shape = RoundedCornerShape(16.dp),
         modifier = Modifier.fillMaxWidth(.92f).border(1.dp, ZyraColors.cyan.copy(alpha = .3f), RoundedCornerShape(16.dp))
     ) {
@@ -425,7 +588,7 @@ private fun MessageBubble(isUser: Boolean, text: String, imagePath: String?, str
         }
         if (!streaming) {
             Row(Modifier.padding(start = 8.dp, top = 3.dp), horizontalArrangement = Arrangement.spacedBy(2.dp), verticalAlignment = Alignment.CenterVertically) {
-                timestamp?.let { Text(SimpleDateFormat("HH:mm", Locale.getDefault()).format(Date(it)), color = ZyraColors.muted, style = MaterialTheme.typography.labelSmall) }
+                timestamp?.let { Text(SimpleDateFormat("MMM d · HH:mm", Locale.getDefault()).format(Date(it)), color = ZyraColors.muted, style = MaterialTheme.typography.labelSmall) }
                 TextButton(onClick = { val clipboard = context.getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager; clipboard.setPrimaryClip(android.content.ClipData.newPlainText("Zyra message", text)) }) { Text(stringResource(R.string.chat_copy)) }
                 TextButton(onClick = { val send = Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text); context.startActivity(Intent.createChooser(send, "Share message")) }) { Text(stringResource(R.string.chat_share)) }
                 onRegenerate?.let { TextButton(onClick = it) { Text(stringResource(R.string.chat_regenerate)) } }
@@ -443,34 +606,10 @@ private fun MessageBubble(isUser: Boolean, text: String, imagePath: String?, str
     }
 }
 
-private fun markdownText(source: String): AnnotatedString = buildAnnotatedString {
-    val regex = Regex("(\\*\\*.+?\\*\\*|`[^`]+`|\\*[^*\\n]+\\*)")
-    var cursor = 0
-    regex.findAll(source).forEach { match ->
-        append(source.substring(cursor, match.range.first))
-        val token = match.value
-        if (token.startsWith("**")) {
-            pushStyle(SpanStyle(fontWeight = FontWeight.Bold))
-            append(token.removePrefix("**").removeSuffix("**"))
-            pop()
-        } else if (token.startsWith("`")) {
-            pushStyle(SpanStyle(color = Color(0xFF73E8F5), background = Color(0xFF18283A)))
-            append(token.trim('`'))
-            pop()
-        } else {
-            pushStyle(SpanStyle(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic))
-            append(token.trim('*'))
-            pop()
-        }
-        cursor = match.range.last + 1
-    }
-    append(source.substring(cursor))
-}
-
 @Composable
 private fun TypingIndicator() {
     Row(
-        Modifier.background(Color(0xCC101522), RoundedCornerShape(18.dp)).padding(horizontal = 17.dp, vertical = 15.dp),
+        Modifier.background(ZyraColors.glass, RoundedCornerShape(18.dp)).padding(horizontal = 17.dp, vertical = 15.dp),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -506,6 +645,8 @@ private fun ContactDock() {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 JellyOrb(
                     modifier = Modifier.size(46.dp),
+                    contentDescription = item.second,
+                    stateDescription = "Open contact link",
                     onClick = {
                         val urls = listOf(
                             "https://www.tiktok.com/@t_safari",
@@ -517,9 +658,9 @@ private fun ContactDock() {
                     }
                 ) {
                     Surface(
-                        modifier = Modifier.size(43.dp).border(1.dp, Color(0x8845CBE8), CircleShape),
+                        modifier = Modifier.size(43.dp).border(1.dp, ZyraColors.cyan.copy(alpha = .53f), CircleShape),
                         shape = CircleShape,
-                        color = Color(0xCC111A2C)
+                        color = ZyraColors.glass
                     ) {
                         Box(contentAlignment = Alignment.Center) {
                             Icon(painterResource(item.first), contentDescription = item.second, tint = Color.White, modifier = Modifier.size(20.dp))

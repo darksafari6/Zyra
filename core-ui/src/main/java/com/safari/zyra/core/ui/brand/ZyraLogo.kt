@@ -1,6 +1,5 @@
 package com.safari.zyra.core.ui.brand
 
-import com.safari.zyra.core.ui.theme.ZyraColors
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size
@@ -15,6 +14,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.PathMeasure
 import androidx.compose.ui.unit.dp
+import com.safari.zyra.core.ui.theme.ZyraColors
 import kotlin.math.min
 
 @Composable
@@ -24,7 +24,7 @@ fun ZyraLogo(progress: Float, modifier: Modifier = Modifier) {
         val d = min(size.width, size.height)
         val c = Offset(size.width / 2f, size.height / 2f)
         val radius = d * .44f
-        drawCircle(Brush.radialGradient(listOf(Color(0xFF304A83).copy(alpha = .82f), Color(0xFF10162D).copy(alpha = .9f), Color(0x0005060A)), c, radius * 1.35f), radius * 1.35f, c)
+        drawCircle(Brush.radialGradient(listOf(ZyraColors.violet.copy(alpha = .82f), ZyraColors.surface.copy(alpha = .9f), ZyraColors.background.copy(alpha = 0f)), c, radius * 1.35f), radius * 1.35f, c)
         drawCircle(ZyraColors.cyan.copy(alpha = .72f), radius, c, style = Stroke(width = d * .012f))
         drawCircle(ZyraColors.violet.copy(alpha = .22f), radius * .91f, c, style = Stroke(width = d * .008f))
         val ribbon = Path().apply {

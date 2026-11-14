@@ -6,13 +6,16 @@ plugins {
 android {
     namespace = "com.safari.zyra.core.data"
     compileSdk = 36
-    defaultConfig { minSdk = 28 }
+    defaultConfig {
+        minSdk = 28
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+    }
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
 }
+kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 ksp { arg("room.schemaLocation", "$projectDir/schemas") }
 
 dependencies {
@@ -24,4 +27,9 @@ dependencies {
     implementation(libs.hilt.android)
     ksp(libs.androidx.room.compiler)
     ksp(libs.hilt.compiler)
+    testImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.core)
+    androidTestImplementation(libs.androidx.test.ext.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.room.testing)
 }

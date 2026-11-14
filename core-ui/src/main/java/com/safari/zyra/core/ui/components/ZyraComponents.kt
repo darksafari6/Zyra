@@ -11,6 +11,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.blur
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.runtime.remember
+import com.safari.zyra.core.ui.PerformanceTier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -24,13 +27,31 @@ fun ZyraScaffold(modifier: Modifier = Modifier, topBar: @Composable () -> Unit =
     Scaffold(modifier = modifier.fillMaxSize(), containerColor = ZyraColors.background, topBar = topBar, snackbarHost = snackbarHost, contentWindowInsets = WindowInsets.safeDrawing, content = content)
 }
 @Composable
-fun GlassSurface(modifier: Modifier = Modifier, shape: RoundedCornerShape = ZyraRadius.card, glow: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+fun GlassSurface(
+    modifier: Modifier = Modifier,
+    shape: RoundedCornerShape = ZyraRadius.card,
+    glow: Boolean = false,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val context = LocalContext.current
+    val tier = remember { PerformanceTier.current(context) }
     val borderBrush = Brush.linearGradient(listOf(ZyraColors.cyan.copy(.55f), ZyraColors.violet.copy(.38f), ZyraColors.magenta.copy(.28f)))
-    Surface(modifier = modifier.then(if (Build.VERSION.SDK_INT >= 31) Modifier.blur(.5.dp) else Modifier).border(1.dp, borderBrush, shape), shape = shape, color = ZyraColors.glass, shadowElevation = if (glow) 8.dp else 0.dp) {
-        Column(Modifier.padding(ZyraSpacing.md), content = content)
+    Box(modifier) {
+        if (glow && Build.VERSION.SDK_INT >= 31 && tier.allowsBlur) {
+            Box(Modifier.matchParentSize().padding(5.dp).blur(12.dp).background(borderBrush, shape))
+        }
+        Surface(
+            modifier = Modifier.fillMaxWidth().border(1.dp, borderBrush, shape),
+            shape = shape,
+            color = if (tier == PerformanceTier.BASIC) ZyraColors.surface else ZyraColors.glass,
+            shadowElevation = if (glow && tier != PerformanceTier.BASIC) 8.dp else 0.dp
+        ) {
+            Column(Modifier.padding(ZyraSpacing.md), content = content)
+        }
     }
 }
 enum class ZyraButtonStyle { Filled, Tonal, Text }
+
 @Composable
 fun ZyraButton(text: String, onClick: () -> Unit, modifier: Modifier = Modifier, style: ZyraButtonStyle = ZyraButtonStyle.Filled, enabled: Boolean = true) {
     when (style) {

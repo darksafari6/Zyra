@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="listen_for_stop_title">Listen for stop while speaking</string>
+    <string name="listen_for_stop_summary">Best with headphones. Zyra listens for a stop command while speaking; off by default.</string>
+    <string name="install_tts_language_data">Install missing text-to-speech language data</string>
+</resources>

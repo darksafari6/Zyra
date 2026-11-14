@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="listen_for_stop_title">بولتے وقت روکنے کا حکم سنیں</string>
+    <string name="listen_for_stop_summary">ہیڈفون کے ساتھ بہتر ہے۔ زائرا بولتے ہوئے روکنے کا حکم سنے گی؛ یہ سہولت پہلے سے بند ہے۔</string>
+    <string name="install_tts_language_data">متن سے آواز کے لیے زبان کا ڈیٹا انسٹال کریں</string>
+</resources>

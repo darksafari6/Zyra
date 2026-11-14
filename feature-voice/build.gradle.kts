@@ -11,12 +11,17 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    kotlinOptions { jvmTarget = "17" }
 }
+kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 dependencies {
     implementation(project(":core-data"))
     implementation(project(":core-network"))
+    implementation(project(":device-control"))
     implementation(libs.kotlinx.coroutines.android)
     implementation(libs.hilt.android)
+    testImplementation(libs.junit)
+    testImplementation(libs.mockk)
+    testImplementation(libs.turbine)
+    testImplementation(libs.kotlinx.coroutines.test)
     ksp(libs.hilt.compiler)
 }

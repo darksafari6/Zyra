@@ -31,4 +31,27 @@
     <string name="voice_title">ZYRA VOICE</string>
     <string name="voice_stop">Stop voice</string>
     <string name="voice_dismiss">Swipe down or tap to close</string>
+    <string name="settings_key_saved">An encrypted API key is saved on this device.</string>
+    <string name="settings_no_key">No API key saved yet.</string>
+    <string name="settings_api_key">Gemini API key</string>
+    <string name="settings_replace_key">Saved key — enter a replacement</string>
+    <string name="settings_paste_key">Paste your API key</string>
+    <string name="settings_save_key">Save key</string>
+    <string name="settings_clear_key">Clear key</string>
+    <string name="settings_text_model">Text model ID</string>
+    <string name="settings_text_model_hint">Enter an available Gemini model ID</string>
+    <string name="settings_live_model">Live model ID</string>
+    <string name="settings_live_model_hint">Choose a model that supports Gemini Live</string>
+    <string name="settings_personality">Zyra system personality</string>
+    <string name="settings_language">Speech language (BCP-47)</string>
+    <string name="settings_language_hint">en-US, ur-PK, hi-IN</string>
+    <string name="settings_speed">Speech speed: %1$.2fx</string>
+    <string name="settings_pitch">Voice pitch: %1$.2fx</string>
+    <string name="settings_saved">Settings saved successfully.</string>
+    <string name="settings_testing">Testing…</string>
+    <string name="settings_clear_description">Clear all saved messages and locally stored chat images from this device.</string>
+    <string name="settings_clear_confirm_title">Clear chat history?</string>
+    <string name="settings_clear_confirm_body">This permanently deletes saved messages and chat image copies from this device.</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_clear">Clear</string>
 </resources>

@@ -1,103 +1,191 @@
 # ZYRA — Android AI Assistant
 
-ZYRA is Safari's Android AI assistant. It is built in phases as a modular Android application.
+ZYRA is Safari's Android AI assistant. The app uses Kotlin, Jetpack Compose, Hilt, Room, DataStore, Ktor and the Gemini REST API.
 
 ## Requirements
+
 - Android 9 (API 28) or newer
 - JDK 17
 - Android SDK 36
+- Gradle 8.13
 
 ## Build
-Open the project in Android Studio and sync Gradle. This repository does not yet include the Gradle wrapper, so use an installed Gradle 8.13 distribution. Build the debug APK with:
+
+The repository includes the Gradle 8.13 wrapper scripts and distribution configuration. On the first same-repository pull-request run, CI generates the official wrapper JAR and commits it to the PR branch; it is also uploaded as the `gradle-wrapper-8.13` artifact. If you check out the branch before that bootstrap commit arrives, bootstrap locally with an installed Gradle 8.13 distribution:
 
 ```bash
-gradle :app:assembleDebug
+gradle wrapper --gradle-version 8.13 --distribution-type bin
+chmod +x ./gradlew
+./gradlew lintDebug testDebugUnitTest assembleDebug
 ```
 
+GitHub Actions bootstraps the wrapper, runs lint, unit tests and the debug build, then uploads `app-debug.apk` as the `zyra-debug-apk` artifact.
+
 ## Current implementation
-- Piece 1: modular Android scaffold, Kotlin, Compose, Hilt and Gradle version catalog.
-- Piece 2: ZYRA vector brand, adaptive launcher icon, Canvas logo, jelly orb and animated splash.
-- Piece 3: Room-backed message history, encrypted API key storage, DataStore model/personality settings, Gemini REST SSE text/image requests, chat and settings UI, contact launchers.
-- Piece 4: foreground tap-to-talk fast voice, runtime microphone rationale, SpeechRecognizer partial transcript and RMS callbacks (on-device recognizer preferred on Android 12+), streamed sentence-by-sentence Android TextToSpeech, spoken/tap stop, and persisted voice language/speed/pitch settings.
 
-## Gemini setup
-1. Create/manage an API key in [Google AI Studio](https://aistudio.google.com/app/apikey).
-2. In ZYRA Settings, save the key, enter a supported **text model ID**, save settings, then use **Test Gemini connection**.
-3. Check Google's live [Gemini API model catalog](https://ai.google.dev/gemini-api/docs/models) before choosing a model. Verify the exact endpoint ID and that it supports `generateContent`/streaming and image input if you plan to attach images. Do not rely on old tutorials or retired model IDs.
-4. The Live model ID field is reserved for the later Live API phase; it is not used by the current text chat.
+- **Core app:** modular Kotlin/Compose app, Hilt dependency injection, Android 9+ support, Android SDK 36 target, dark-glass design system and responsive chat/settings surfaces.
+- **Onboarding:** first-run welcome, Google AI Studio launch, Gemini key validation, model selection, microphone rationale and runtime permission, installed voice-language selection, and persisted completion state. Settings can launch onboarding again.
+- **Gemini catalog:** paginated `v1beta/models` discovery using the saved key. The picker separates `generateContent` text models from `bidiGenerateContent` Live models and shows display name, ID and token limits. Manual model ID entry remains available. No production model ID or API key is hardcoded.
+- **Settings:** dedicated `feature-settings` module and `SettingsViewModel`; connection test, model pickers, Friendly / Professional / Roman-Urdu buddy / Custom persona, installed recognizer and TTS locale union, installed TTS voice picker, speed/pitch and test speech, reduce effects, pure-black appearance, opt-in Gemini conversation auto-title, clear history, JSON/Markdown share export, API-key deletion, version, source/licence link and contact/issue link.
+- **Conversations:** conversation list, new chat, rename, delete and cross-conversation message search. The current conversation switcher is a dialog rather than a persistent navigation drawer. Optional auto-title is off by default and runs only when a new text chat starts.
+- **Long context:** chat and voice requests maintain a rolling extractive summary of older turns and pass recent history through a token-estimated budget. Earlier image attachments are represented as short text notes; only the current image is sent as image data.
+- **Voice:** tap-to-talk SpeechRecognizer and streamed Android TextToSpeech, state-machine transitions, installed recognizer/TTS locale discovery, selectable TTS voice, stop and interruption handling. This is not Gemini Live duplex audio or background wake-word listening.
+- **Security:** new API-key writes use Android Keystore AES-GCM; the wrapped ciphertext is stored in DataStore. On first read, a prior Jetpack Security Crypto value is migrated and then cleared from the legacy preference. The legacy dependency remains only for this migration path. Android backup is disabled.
+- **CI/release:** Gradle 8.13 bootstrap, lint, unit tests, debug APK artifact, R8 minification and an opt-in signed release job for version tags. Signing keystore bytes and passwords are read only from repository secrets; nothing is committed.
 
-The API key is not compiled into the app. It is stored locally with Android Keystore-backed Jetpack Security Crypto `EncryptedSharedPreferences`, as requested for this phase. Note: AndroidX has deprecated that library and announced no further releases; this is a compatibility choice for this requested implementation, not a recommended long-term storage API. Keep the encrypted preferences excluded from backups.
+## Database and key migration notes
 
-## Notes
-- Chat messages and image copies are stored in the app's private Room/files storage and survive normal app restarts.
-- Clearing chat history deletes Room messages and the app's copied chat images.
-- The app does not ship with a model ID or API key hardcoded.
-- Voice capture starts only after the user taps the mic orb and grants RECORD_AUDIO. Android's speech recognition provider and language pack availability vary by device; online recognition may be used when on-device recognition is unavailable.
-- Never commit API keys or signing credentials.
-- Fast voice mode uses Android SpeechRecognizer and TextToSpeech; it is not Gemini Live duplex audio. Background wake-word listening is not part of this phase. Speech amplitude is read from SpeechRecognizer callbacks; the app no longer opens a second AudioRecord stream for the same microphone session.
+The previous branch already used Room schema version 2 for the timestamp-index migration. Piece 7 therefore advances the database to **version 3** rather than reusing version 2:
 
-## Piece 5 — Android hardening (implementation in progress)
+1. Existing v1 databases run the existing v1→v2 timestamp-index migration.
+2. v2→v3 creates the `conversations` table, inserts the default conversation (ID 1), adds `conversation_id` to existing messages with default 1, and creates a conversation/timestamp index. Existing messages remain in the default conversation.
+3. Fresh installs create the default conversation when Room creates the database.
+4. Existing `zyra_secrets/gemini_api_key` values are read through the legacy encrypted-preferences implementation, encrypted with a Keystore AES-GCM key, written to the `zyra_secure_values` DataStore, and removed from the legacy preferences only after the new write succeeds.
 
-Changes currently staged on the `piece-5-hardening` branch:
+No destructive Room fallback is configured. If Android Keystore cannot decrypt an existing value, ZYRA reports that secure storage is unavailable rather than storing the key in plaintext.
 
-- Added safe drawing-area and IME padding to chat and settings; set the activity soft-input mode to `adjustResize`.
-- Removed the fixed 2.5-second navigation timer; the app now waits for the splash composable's `onFinished` callback.
-- Added bounded retry/backoff (two retries) for Gemini HTTP 429/500/503 responses before the first streamed token; surfaced prompt-block, safety and output-limit metadata.
-- Converted attached images to JPEG on Dispatchers.IO, downscaled to a 1600 px maximum edge and compressed at quality 85 before storage/upload.
-- Removed the second AudioRecord capture path; SpeechRecognizer now supplies RMS callbacks and silence timeout hints.
-- Added TTS markdown/link/emoji cleanup, transient assistant audio focus, utterance completion tracking, and fallback to the device's default TTS language when a requested voice is unavailable.
-- Made Keystore initialization failure non-fatal; Zyra never falls back to plaintext key storage and reports a friendly error when secure storage cannot save a key.
-- Stop/destroy voice recognition and playback when the app moves to the background; normalized spoken stop commands include English and common Roman Urdu phrases.
-- Removed the duplicate voice assistant message during speech playback by persisting the completed assistant response after TTS finishes. Thinking no longer repeats the already-saved user transcript; speaking uses the normal assistant message presentation.
-- Text submission requests voice shutdown first when a voice session is active.
-- Made Gemini connection testing read-only; settings are persisted only by Save settings, which now shows a confirmation snackbar.
-- Enabled Room schema export, added a timestamp index, and added the version 1-to-2 migration scaffold.
+## How to test each flow
 
-### Piece 5 work still outstanding
+### First-run setup
 
-- Per-session SpeechRecognizer callback invalidation and a user-configurable spoken-stop toggle still need implementation.
-- A dedicated TTS language-pack installation prompt is not implemented; unsupported requested voices fall back to the device default.
-- Full single-active-request serialization between simultaneous text and voice operations still needs verification and hardening.
-- No automated tests have been added yet.
+1. Install a fresh debug build or clear app data.
+2. Start onboarding and open Google AI Studio.
+3. Paste a valid Gemini API key and select **Validate key and load models**.
+4. Search the returned model list; choose a text model and, if available, a Live model. Try manual ID entry as the fallback.
+5. Allow or skip microphone permission.
+6. Choose one of the installed recognizer/TTS languages and finish.
+7. Restart the app; onboarding should not appear again unless requested from Settings.
+
+### Settings
+
+1. Open Settings and refresh the model catalog.
+2. Test the Gemini connection.
+3. Switch persona, language, TTS voice, speed and pitch; use **Test voice**.
+4. Toggle reduce effects, pure black and auto-title, save, leave Settings and reopen it to check persistence.
+5. Export JSON and Markdown through the Android share sheet.
+6. Clear history and verify messages and copied image files are removed. Delete the API key and verify the connection status changes.
+7. Use **Run onboarding again** to repeat setup.
+
+### Conversations and context
+
+1. Create multiple chats, rename one, switch between them and delete one.
+2. Search for a phrase from a different conversation and open its result.
+3. Enable auto-title, create a new text chat and send its first message; disable the setting to keep manually named chats.
+4. In a long conversation, continue beyond the recent-history budget. Older turns should be represented by the rolling summary; previous images should appear as text notes in history, not be re-uploaded.
+
+### Automated tests
+
+```bash
+./gradlew testDebugUnitTest
+./gradlew lintDebug
+./gradlew assembleDebug
+```
+
+The test sources cover Gemini SSE parsing with Ktor MockEngine, voice state transitions, speech-text sanitization, DataStore settings persistence and Room v2→v3 migration. The DataStore and migration tests are Android instrumentation tests and require an emulator/device:
+
+```bash
+./gradlew connectedDebugAndroidTest
+```
+
+### Signed release setup
+
+Set repository variable `ENABLE_SIGNED_RELEASE=true` and these repository secrets:
+
+- `RELEASE_KEYSTORE_BASE64`
+- `RELEASE_KEYSTORE_PASSWORD`
+- `RELEASE_KEY_ALIAS`
+- `RELEASE_KEY_PASSWORD`
+
+Push a version tag such as `v0.2.0`. The release job decodes the keystore into the runner's temporary directory, uses the GitHub run number as `versionCode`, builds the minified signed APK and attaches it to the GitHub Release.
+
+## Validation status and real-device checks
+
+Do not treat this branch as verified until the latest GitHub Actions run is green. Instrumentation tests are not part of the hosted unit-test step unless an emulator is provisioned.
+
+Still required on physical devices/emulators:
+
+- First-run and rerun onboarding on Android 9–16; permission denial, permanent denial and grant flows.
+- Keystore migration from a real previous installation, lock-screen changes, Keystore invalidation and app reinstall behavior.
+- Gemini API key validity, pagination, quota errors, Live-capable model availability and actual model token limits.
+- Installed speech-recognizer/TTS locale availability across OEMs; voice selection, Urdu/Roman Urdu, speed/pitch, audio focus, Bluetooth and interruption behavior.
+- Conversation migration using a copy of a real v2 database; long-context quality and auto-title quality.
+- Camera/gallery attachments, image cleanup, RTL Urdu, landscape, tablet/foldable layouts, TalkBack, reduce-effects and pure-black appearance.
+- Signed release only after repository secrets and the release variable are configured.
+
+Never commit API keys, signing credentials or keystore files.
+
+
+## Piece 8 — Zyra Everywhere
+
+This branch now includes the usable integration surfaces and a foreground-only Live voice path:
+
+- Gemini Live WebSocket transport and LiveVoiceSession orchestration: explicit 16 kHz PCM microphone capture, 24 kHz PCM playback, input/output captions, interruption handling and a visible Live/Stop Live control. Fast voice remains available as a manual fallback.
+- Android VoiceInteractionService and VoiceInteractionSessionService, with a compact system assistant surface. Settings includes the Set as default assistant action, which asks Android to grant the assistant role.
+- Quick Settings tile that opens Zyra's visible voice flow, a Glance Ask Zyra home-screen widget, dynamic Ask Zyra and Voice chat shortcuts, and Android Sharesheet support for shared text or a single image.
+- A Stop all assistant activity privacy action. Voice sessions are also stopped when the app leaves the foreground.
+- The foreground microphone-service shell is registered but is not started automatically. Background wake-word listening remains disabled.
+
+### External requirement: Hey Zyra wake word
+
+The offline WakeWordEngine contract remains fail-closed. A real custom Hey Zyra detector requires a licensed wake-word SDK account and the generated phrase model (for example, a Picovoice .ppn model). Those account-specific assets cannot be generated or safely embedded without the owner's licence and model. No microphone is opened for wake-word detection, and the app must not claim that Hey Zyra is listening.
+
+### Remaining verification and hardening
+
+- Validate the Gemini Live wire protocol against the exact model available to the user's API key; implement session resumption and automatic Fast fallback on GoAway/network loss.
+- Package and test the licensed local wake-word model, sensitivity control, call/audio-focus pause behavior and OEM battery guidance after the owner supplies the model/licence.
+- Test the VoiceInteraction role, notification behavior, share intents, widget and Quick Settings tile on Android 9–16 and OEM devices.
+- Run lint, unit tests, assembleDebug and physical-device microphone/route/Doze tests. The GitHub Actions run for this branch is the build gate; a queued/running job is not a pass.
+
+### Piece 8 references
+
+- [Architecture and privacy invariants](docs/architecture-piece-8.md)
+- [Wake-word engine comparison and external asset requirement](docs/wake-word.md)
+- [Permissions, battery method and device test plan](docs/permissions-piece-8.md)
+- [Official Gemini Live API overview](https://aistudio.google.com/docs/live-api)
+- [Official Gemini Live API capabilities](https://aistudio.google.com/docs/live-api/capabilities)
+- [Official Gemini Live WebSocket guide](https://aistudio.google.com/docs/live-api/get-started-websocket)
+
+No local Gradle build or physical-device test has been run from this editing session. Do not treat Piece 8 as release-ready until GitHub Actions is green and the device matrix above passes.
+
+Never commit API keys, SDK licence keys, custom wake-word model assets or signing credentials.
+
+
+## Piece 9 — Phone control, tool safety and long-term memory
+
+### Added in this branch
+
+- A typed ZyraTool contract with a name, description, JSON parameter schema, LOW/MEDIUM/HIGH risk, required Android permissions and Success / NeedsUserAction / Denied / Failed results.
+- A registry that only exposes individually enabled tools to Gemini. The global device-tools kill switch and every per-tool toggle default off.
+- Gemini function calling over the existing Ktor HTTP client: function declarations are sent in the request, streamed functionCall parts are parsed, tools execute in the app, functionResponse parts are sent back, and the model continues. The loop is bounded to four tool-call rounds; tool execution has a 12-second timeout and network requests use the configured Ktor timeout.
+- A Compose confirmation bottom sheet: LOW actions run directly, MEDIUM actions require one confirmation per tool per app session, and HIGH actions show the exact arguments and require confirmation every time. Runtime permission prompts are launched only after the user confirms.
+- Built-in tools: open app, open URL, web search handoff, dialer and separately gated direct-call handoffs, SMS/WhatsApp prefill, alarm, timer, calendar event, flashlight, media volume, media-key controls, navigation, battery/time/connectivity, Wi-Fi settings, Bluetooth settings and brightness.
+- Optional sensitive-data tools: current approximate/cached location, clipboard text (only exposed to Gemini when the prompt explicitly asks for clipboard content), and notification summaries. Notification capture is held in memory and remains disabled unless both the global switch and its individual toggle are enabled; Android Notification access is separately required.
+- A session-only Actions log with timestamp, tool, result and redaction of clipboard/location/notification contents. The log is not persisted across app restarts.
+- Room version 4 memory facts with a 3→4 migration. Memory starts disabled and requires explicit first-use consent. The Settings memory section supports viewing, editing, deleting and exporting facts. Memory injection is limited to the latest 20 facts and 2,000 characters. Obvious passwords, API keys, bearer tokens, private-key blocks, JWT-like strings and long card-like number sequences are rejected; this is a heuristic, not a guarantee, so secrets must never be entered.
+- Optional Google Search grounding through Gemini's built-in google_search tool. Grounding URLs from Gemini metadata are appended as sources in the chat. Availability depends on the chosen model and API tier and can incur charges; check the live pricing page before enabling.
+- The tool catalogue, privacy/policy notes and manual device checklist are in docs/piece-9-tool-catalogue.md, docs/piece-9-privacy-and-policy.md and docs/piece-9-manual-test-checklist.md.
+
+### Important safety limits
+
+- Ordinary calls open the dialer. Direct calls require a separate Settings opt-in, the call_direct tool toggle, an explicit direct-call request, CALL_PHONE permission and confirmation of the exact number.
+- SMS and WhatsApp messages are only prefilled; the user must press Send.
+- Wi-Fi and Bluetooth are never toggled silently; Android settings are opened instead.
+- Brightness requires the Android Modify system settings special access.
+- AccessibilityService automation is not implemented. See the Play policy notes before proposing it.
+- Tool settings are opt-in twice: global kill switch plus individual toggles. Sensitive read tools additionally require an explicit user request in the current prompt.
 
 ### Verification
 
-- No unit tests have been added for this partial update.
-- `gradle :app:assembleDebug` has **not** been run in this environment. The repository has no Gradle wrapper and this session cannot clone the repository to run the build locally.
-- CI must pass on the pull request before these changes can be considered build-verified.
+- Added fake-model Gemini tool-loop tests, risk-policy tests, secret-filter tests and a Room migration test covering v2→v4.
+- No local Gradle build or physical-device test was run during this editing session. CI must pass on the Piece 9 pull request before this branch can be considered build-verified.
+- Physical testing is still required for permission flows, notification listener access, location freshness, clipboard privacy, camera torch, system intents, brightness access, Android 9–16 behavior, OEM restrictions, TalkBack and RTL Urdu.
+- The Actions log is currently in-memory only. Persistent action history, direct calling, and background wake/automation are intentionally not part of this delivery.
 
-### Real-device verification still required
-
-- Status/navigation bar spacing and keyboard avoidance on Android 9–16, including gesture and three-button navigation.
-- Splash-to-chat transition timing.
-- Voice recognition, TTS playback and stop behavior across OEM speech services and installed language packs.
-- Microphone behavior, audio focus and interruption handling with wired/Bluetooth headphones and speaker output.
-- Image attachment size, EXIF orientation, and Gemini request limits.
-- Keystore recovery on devices with invalidated or unavailable Android Keystore keys.
+Never commit API keys, notification contents, clipboard contents, location history, or signing credentials.
 
 
-## Piece 6 — UI core update (partial implementation)
+## Piece 10 — Close the gaps (in progress)
 
-### Added in this pass
-- Centralized dark-glass palette tokens in `ZyraColors`, plus spacing, radius and motion-duration tokens.
-- Replaced the default Material typography with a defined type scale.
-- Added reusable `ZyraScaffold`, `GlassSurface`, `ZyraButton`, `ZyraTextField`, `StatusPill`, `SectionCard`, `EmptyState`, `ErrorBanner`, `ZyraSnackbarHost` and `ZyraTopBar` components, with Compose previews.
-- Added TalkBack button role, activation label, content/state descriptions and a 48 dp minimum target to `JellyOrb`.
-- Exposed the existing DataStore `reduceEffects` preference in Settings and connected it to the UI state.
-- Replaced SDK-only performance classification with `ActivityManager.isLowRamDevice` and memory-class-based tiers.
+This branch fixes the final Fast voice sentence voice selection, adds the opt-in stop-while-speaking setting (off by default), routes Fast voice through the shared tool policy and opt-in memory, allows tool calling with an attached image, offers Android TTS data installation for a missing selected voice, removes unused AudioRecorder/module marker classes, and runs CI on direct pushes to `main` as well as pull requests.
 
-### Not yet implemented
-- Custom OFL font files are not bundled yet; the type scale currently uses the platform default font family.
-- Existing ChatScreen, SettingsScreen, splash and contact dock still contain hardcoded colors and text sizes; migration to tokens is incomplete.
-- GlassSurface currently uses a translucent solid fallback with gradient border; the API 31+ localized blur path is not implemented.
-- Full voice-mode destination/animations, AGSL background, lifecycle frame pausing and swipe-dismiss are not implemented.
-- Markdown AST renderer, message action menu, date/time labels, image viewer, corrected auto-scroll, suggestion chips, camera attach, IME send and animated list polish remain outstanding.
-- Predictive back, container-transform navigation, tappable splash skip, complete English/Urdu string extraction, RTL validation and tablet/foldable width constraints remain outstanding.
-- Component previews are source-defined; they have not been rendered or visually verified in Android Studio.
-
-### Dependencies
-- No new runtime dependency was added. The existing Compose UI tooling-preview/tooling catalog entries are now enabled in `core-ui` for previews.
-
-### Verification and device checks
-- `gradle :app:assembleDebug` has not been run in this environment. Do not treat this branch as build-verified until the GitHub Actions run passes.
-- Real-device checks still required: TalkBack activation/state announcements, 48 dp target sizing, reduce-effects persistence, low-RAM effect selection, insets/IME, RTL Urdu, landscape and large-screen layouts, voice lifecycle, animation scaling and API 28/31/33+ rendering.
+**Piece 10 is not complete yet.** Gemini Live function calling and session resumption (Fast-voice fallback on Live disconnect is now implemented), ephemeral-token backend provisioning, full Settings/Onboarding Urdu localization, optional generation parameters, OFL font packaging, the AGSL effect, Gemini-generated rolling summaries, the complete privacy surface, and the requested test suites remain open. See [docs/piece-10-status.md](docs/piece-10-status.md) for the exact status, official protocol references and real-device checklist. Do not treat this branch as release-ready until CI is green and the manual device checks pass.

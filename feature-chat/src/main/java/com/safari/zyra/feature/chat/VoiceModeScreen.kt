@@ -2,9 +2,7 @@ package com.safari.zyra.feature.chat
 
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.RepeatMode
-import androidx.compose.animation.core.animateFloat
-import androidx.compose.animation.core.infiniteRepeatable
-import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
@@ -23,15 +21,31 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.res.stringResource
+import kotlinx.coroutines.launch
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.repeatOnLifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.safari.zyra.core.ui.brand.JellyOrb
 import com.safari.zyra.core.ui.theme.ZyraColors
 import com.safari.zyra.core.ui.theme.ZyraTheme
 import com.safari.zyra.feature.voice.VoiceState
 
 @Composable
-fun VoiceModeScreen(state: VoiceState, onStop: () -> Unit, onDismiss: () -> Unit) {
-    val transition = rememberInfiniteTransition(label = "voiceBackdrop")
-    val offset by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(7000, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "gradient")
+fun VoiceModeScreen(state: VoiceState, reduceEffects: Boolean = false, onStop: () -> Unit, onDismiss: () -> Unit) {
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val backdrop = remember { Animatable(0f) }
+    val waveform = remember { Animatable(0f) }
+    LaunchedEffect(reduceEffects, lifecycleOwner) {
+        if (reduceEffects) { backdrop.snapTo(0f); waveform.snapTo(0f) }
+        else lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            kotlinx.coroutines.coroutineScope {
+            launch { while (true) { backdrop.animateTo(1f, tween(7000, easing = FastOutSlowInEasing)); backdrop.animateTo(0f, tween(7000, easing = FastOutSlowInEasing)) } }
+            launch { while (true) { waveform.animateTo(1f, tween(550, easing = FastOutSlowInEasing)); waveform.animateTo(0f, tween(550, easing = FastOutSlowInEasing)) } }
+            }
+        }
+    }
+    val offset = backdrop.value
+    val wave = waveform.value
     val amplitude = (state as? VoiceState.Listening)?.amplitude?.coerceIn(0f, 1f) ?: 0f
     val status = when(state) {
         is VoiceState.Listening -> "Listening"
@@ -47,7 +61,7 @@ fun VoiceModeScreen(state: VoiceState, onStop: () -> Unit, onDismiss: () -> Unit
         }) {
         Column(Modifier.fillMaxSize().padding(24.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.SpaceBetween) {
             Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                Text(stringResource(R.string.voice_title), color = ZyraColors.cyan, fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 3.sp)
+                Text(stringResource(R.string.voice_title), color = ZyraColors.cyan, fontSize = MaterialTheme.typography.labelLarge.fontSize, fontWeight = FontWeight.Bold, letterSpacing = 3.sp)
                 Spacer(Modifier.height(12.dp))
                 Text(status.uppercase(), color = ZyraColors.text, style = MaterialTheme.typography.titleLarge)
             }
@@ -55,6 +69,7 @@ fun VoiceModeScreen(state: VoiceState, onStop: () -> Unit, onDismiss: () -> Unit
                 JellyOrb(
                     modifier = Modifier.size(220.dp),
                     enabled = status == "Listening",
+                    reduceEffects = reduceEffects,
                     contentDescription = "Voice assistant orb",
                     stateDescription = status
                 ) {
@@ -65,7 +80,7 @@ fun VoiceModeScreen(state: VoiceState, onStop: () -> Unit, onDismiss: () -> Unit
                         when (state) {
                             is VoiceState.Thinking -> CircularProgressIndicator(color = ZyraColors.violet, strokeWidth = 4.dp, modifier = Modifier.size(172.dp))
                             is VoiceState.Speaking -> Row(horizontalArrangement = Arrangement.spacedBy(7.dp), verticalAlignment = Alignment.CenterVertically) {
-                                repeat(7) { i -> Box(Modifier.width(5.dp).height((18 + ((i*13)%34)).dp).background(ZyraColors.magenta, CircleShape)) }
+                                repeat(7) { i -> Box(Modifier.width(5.dp).height((16 + ((i*13)%28) + (wave * if (i % 2 == 0) 16 else 5)).dp).background(ZyraColors.magenta, CircleShape)) }
                             }
                             else -> Box(Modifier.size(112.dp).background(ZyraColors.cyan.copy(alpha=.18f), CircleShape))
                         }
@@ -90,4 +105,4 @@ fun VoiceModeScreen(state: VoiceState, onStop: () -> Unit, onDismiss: () -> Unit
 }
 
 @Preview(showBackground = true, backgroundColor = 0xFF05060A)
-@Composable private fun VoiceModePreview() { ZyraTheme { VoiceModeScreen(VoiceState.Idle, {}, {}) } }
+@Composable private fun VoiceModePreview() { ZyraTheme { VoiceModeScreen(VoiceState.Idle, reduceEffects = true, onStop = {}, onDismiss = {}) } }

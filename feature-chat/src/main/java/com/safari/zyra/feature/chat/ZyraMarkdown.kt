@@ -89,7 +89,7 @@ fun ZyraMarkdown(source: String, modifier: Modifier = Modifier) {
 }
 
 private fun inlineMarkdown(text: String): AnnotatedString = buildAnnotatedString {
-    val pattern = Regex("(\\*\\*[^*]+\\*\\*|\\*[^*]+\\*|\x60[^\x60]+\x60|\\[[^]]+\\]\\(https?://[^)]+\\))")
+    val pattern = Regex("(\\*\\*[^*]+\\*\\*|\\*[^*]+\\*|`[^`]+`|\\[[^]]+\\]\\(https?://[^)]+\\))")
     var cursor = 0
     pattern.findAll(text).forEach { match ->
         append(text.substring(cursor, match.range.first))

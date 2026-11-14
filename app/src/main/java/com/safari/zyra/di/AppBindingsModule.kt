@@ -2,16 +2,27 @@ package com.safari.zyra.di
 
 import android.content.Context
 import androidx.room.Room
+import androidx.room.RoomDatabase
 import com.safari.zyra.core.data.SettingsDataStore
 import com.safari.zyra.core.data.SettingsRepository
 import com.safari.zyra.core.data.chat.ChatMessageDao
 import com.safari.zyra.core.data.chat.ChatRepository
+import com.safari.zyra.core.data.chat.ConversationDao
 import com.safari.zyra.core.data.chat.RoomChatRepository
 import com.safari.zyra.core.data.chat.ZyraDatabase
 import com.safari.zyra.core.data.security.ApiKeyStore
 import com.safari.zyra.core.data.security.EncryptedApiKeyStore
+import com.safari.zyra.core.data.memory.MemoryFactDao
+import com.safari.zyra.core.data.memory.MemoryRepository
+import com.safari.zyra.core.data.memory.RoomMemoryRepository
 import com.safari.zyra.core.network.GeminiClient
 import com.safari.zyra.core.network.GeminiRestClient
+import com.safari.zyra.core.network.GeminiLiveClient
+import com.safari.zyra.core.network.GeminiLiveTransport
+import com.safari.zyra.core.network.GeminiToolExecutor
+import com.safari.zyra.device.control.ToolExecutionEngine
+import com.safari.zyra.feature.voice.AndroidLiveAudioEngine
+import com.safari.zyra.feature.voice.LiveAudioEngine
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -21,6 +32,7 @@ import dagger.hilt.components.SingletonComponent
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.websocket.WebSockets
 import javax.inject.Singleton
 
 @Module
@@ -29,19 +41,31 @@ abstract class AppBindingsModule {
     @Binds @Singleton abstract fun bindSettingsRepository(implementation: SettingsDataStore): SettingsRepository
     @Binds @Singleton abstract fun bindChatRepository(implementation: RoomChatRepository): ChatRepository
     @Binds @Singleton abstract fun bindApiKeyStore(implementation: EncryptedApiKeyStore): ApiKeyStore
+    @Binds @Singleton abstract fun bindMemoryRepository(implementation: RoomMemoryRepository): MemoryRepository
     @Binds @Singleton abstract fun bindGeminiClient(implementation: GeminiRestClient): GeminiClient
+    @Binds @Singleton abstract fun bindGeminiLiveTransport(implementation: GeminiLiveClient): GeminiLiveTransport
+    @Binds @Singleton abstract fun bindLiveAudioEngine(implementation: AndroidLiveAudioEngine): LiveAudioEngine
+    @Binds @Singleton abstract fun bindGeminiToolExecutor(implementation: ToolExecutionEngine): GeminiToolExecutor
 
     companion object {
         @Provides @Singleton
         fun provideDatabase(@ApplicationContext context: Context): ZyraDatabase =
             Room.databaseBuilder(context, ZyraDatabase::class.java, "zyra_chat.db")
-                .addMigrations(ZyraDatabase.MIGRATION_1_2)
+                .addMigrations(ZyraDatabase.MIGRATION_1_2, ZyraDatabase.MIGRATION_2_3, ZyraDatabase.MIGRATION_3_4)
+                .addCallback(object : RoomDatabase.Callback() {
+                    override fun onCreate(db: androidx.sqlite.db.SupportSQLiteDatabase) {
+                        db.execSQL("INSERT OR IGNORE INTO conversations (id, title, createdAt, updatedAt) VALUES (1, 'New chat', 0, 0)")
+                    }
+                })
                 .build()
 
         @Provides fun provideChatDao(database: ZyraDatabase): ChatMessageDao = database.chatMessageDao()
+        @Provides fun provideConversationDao(database: ZyraDatabase): ConversationDao = database.conversationDao()
+        @Provides fun provideMemoryFactDao(database: ZyraDatabase): MemoryFactDao = database.memoryFactDao()
 
         @Provides @Singleton
         fun provideHttpClient(): HttpClient = HttpClient(OkHttp) {
+            install(WebSockets)
             expectSuccess = false
             install(HttpTimeout) {
                 requestTimeoutMillis = 120_000
