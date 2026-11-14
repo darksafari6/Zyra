@@ -43,7 +43,7 @@ class ToolExecutionEngine @Inject constructor(
                 preview(tool, arguments), tool.risk, tool.requiredPermissions)
             pendingState.value = pendingAction
             val result = ToolResult.NeedsUserAction(policyResult.detail, pendingAction.id)
-            audit.record(ToolAuditEntry(pendingAction.id, name, pendingAction.preview, result))
+            audit.record(ToolAuditEntry(pendingAction.id, name, auditPreview(tool, arguments), result))
             return result
         }
         return runTool(tool, arguments)
@@ -83,10 +83,18 @@ class ToolExecutionEngine @Inject constructor(
         val auditResult = if (tool.name in setOf("clipboard_read", "notification_summary", "current_location") &&
             result is ToolResult.Success) ToolResult.Success("Sensitive data was accessed at the user's request; contents omitted from the action log.")
         else result
-        audit.record(ToolAuditEntry(id, tool.name, preview(tool, args), auditResult))
+        audit.record(ToolAuditEntry(id, tool.name, auditPreview(tool, args), auditResult))
         return result
     }
 
     private fun preview(tool: ZyraTool, args: JSONObject): String =
         "${tool.description}\nRequested details: ${args.toString().take(500)}"
+
+    private fun auditPreview(tool: ZyraTool, args: JSONObject): String = when (tool.name) {
+        "call" -> "Dialer handoff requested; phone number redacted."
+        "message" -> "Message composer requested; recipient and body redacted."
+        "clipboard_read", "notification_summary", "current_location" -> "Sensitive read requested; content redacted."
+        "remember_fact" -> "Memory write requested; fact value redacted."
+        else -> preview(tool, args).take(300)
+    }
 }
