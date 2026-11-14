@@ -103,6 +103,7 @@ class SettingsViewModel @Inject constructor(
             settingsRepository.setMemoryEnabled(value.memoryEnabled)
             settingsRepository.setGoogleSearchGrounding(value.googleSearchGrounding)
             settingsRepository.setDirectCallsEnabled(value.directCallsEnabled)
+            settingsRepository.setListenForStopWhileSpeaking(value.listenForStopWhileSpeaking)
             mutableState.update { it.copy(saved = true, error = null) }
             onComplete()
         }
