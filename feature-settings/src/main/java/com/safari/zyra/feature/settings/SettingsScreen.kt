@@ -257,7 +257,7 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, onRequestA
                     editingMemoryId = null
                     newMemoryKey = ""
                     newMemoryValue = ""
-                }, enabled = newMemoryKey.isNotBlank() && newMemoryValue.isNotBlank()) { Text("Save memory") }
+                }, enabled = settings.memoryEnabled && newMemoryKey.isNotBlank() && newMemoryValue.isNotBlank()) { Text("Save memory") }
                 OutlinedButton(onClick = { shareText(context, memoryViewModel.export(), "text/plain") }, enabled = memoryFacts.isNotEmpty()) { Text("Export") }
             }
             memoryError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
