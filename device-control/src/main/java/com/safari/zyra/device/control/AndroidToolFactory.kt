@@ -57,7 +57,7 @@ class AndroidToolFactory @Inject constructor(@ApplicationContext private val con
                 ?: return@tool ToolResult.Failed("That app has no launchable activity.")
             launch(intent); ToolResult.Success("Opened the app.")
         },
-        tool("call", "Open the phone dialer with a number. Direct calling is not implemented; the user places the call.", stringSchema("number", "Phone number to dial."), ToolRisk.HIGH, setOf(Manifest.permission.CALL_PHONE)) { args ->
+        tool("call", "Open the phone dialer with a number. Direct calling is not implemented; the user places the call.", stringSchema("number", "Phone number to dial."), ToolRisk.HIGH) { args ->
             val number = ToolArgumentValidator.requiredString(args, "number", 40)
             require(number.matches(Regex("[+0-9*#(). -]{3,40}"))) { "Phone number contains unsupported characters." }
             launch(Intent(Intent.ACTION_DIAL, Uri.fromParts("tel", number, null)))
@@ -114,7 +114,7 @@ class AndroidToolFactory @Inject constructor(@ApplicationContext private val con
         },
         tool("flashlight", "Turn the camera torch on or off.", JSONObject()
             .put("type", "OBJECT").put("properties", JSONObject().put("enabled", JSONObject().put("type", "BOOLEAN")))
-            .put("required", JSONArray().put("enabled")), ToolRisk.MEDIUM) { args ->
+            .put("required", JSONArray().put("enabled")), ToolRisk.MEDIUM, setOf(Manifest.permission.CAMERA)) { args ->
             val camera = context.getSystemService(CameraManager::class.java)
             val id = camera.cameraIdList.firstOrNull { camera.getCameraCharacteristics(it).get(android.hardware.camera2.CameraCharacteristics.FLASH_INFO_AVAILABLE) == true }
                 ?: return@tool ToolResult.Failed("No camera flash is available.")
