@@ -45,6 +45,12 @@ import java.util.Locale
 fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, onRequestAssistantRole: () -> Unit = {}, onStopAssistant: () -> Unit = {}, viewModel: SettingsViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
+    val memoryViewModel: MemoryViewModel = hiltViewModel()
+    val memoryFacts by memoryViewModel.facts.collectAsState()
+    val memoryError by memoryViewModel.error.collectAsState()
+    var newMemoryKey by remember { mutableStateOf("") }
+    var newMemoryValue by remember { mutableStateOf("") }
+    var editingMemoryId by remember { mutableStateOf<Long?>(null) }
     var settings by remember(state.settings) { mutableStateOf(state.settings) }
     var reduceEffects by remember(state.reduceEffects) { mutableStateOf(state.reduceEffects) }
     var key by remember { mutableStateOf("") }
@@ -142,6 +148,102 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, onRequestA
             Button(onClick = onRequestAssistantRole, modifier = Modifier.fillMaxWidth()) { Text("Set as default assistant") }
             Text("Hey Zyra wake-word listening is OFF. A licensed on-device keyword model has not been added, so Zyra does not listen in the background.")
             OutlinedButton(onClick = onStopAssistant, modifier = Modifier.fillMaxWidth()) { Text("Stop all assistant activity") }
+        }
+        SettingsSection("Phone tools and safety") {
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f)) {
+                    Text("Global device-tools kill switch")
+                    Text("When off, Zyra cannot run any device tool.", style = MaterialTheme.typography.bodySmall)
+                }
+                Switch(settings.toolsEnabled, { settings = settings.copy(toolsEnabled = it); viewModel.setToolsEnabled(it) })
+            }
+            Text("Every tool starts disabled. Enable only the tools you want Zyra to use. Medium-risk tools ask once per session; high-risk tools ask every time.")
+            val toolCatalog = listOf(
+                Triple("open_app", "Open apps", "LOW"),
+                Triple("open_url", "Open web links", "LOW"),
+                Triple("web_search", "Open web search", "LOW"),
+                Triple("call", "Open dialer (never auto-calls)", "HIGH"),
+                Triple("message", "Prefill SMS (you press Send)", "HIGH"),
+                Triple("set_alarm", "Create alarm form", "MEDIUM"),
+                Triple("set_timer", "Create timer form", "MEDIUM"),
+                Triple("calendar_event", "Create calendar event form", "MEDIUM"),
+                Triple("flashlight", "Flashlight", "MEDIUM"),
+                Triple("volume", "Media volume", "MEDIUM"),
+                Triple("navigation", "Open navigation", "LOW"),
+                Triple("device_info", "Battery and connectivity info", "LOW"),
+                Triple("wifi_settings", "Open Wi-Fi settings panel", "LOW"),
+                Triple("bluetooth_settings", "Open Bluetooth settings", "LOW"),
+                Triple("brightness", "Screen brightness (Modify system settings permission)", "MEDIUM"),
+                Triple("remember_fact", "Remember a fact (memory opt-in required)", "MEDIUM"),
+                Triple("forget_fact", "Forget a saved fact", "HIGH")
+            )
+            toolCatalog.forEach { (id, label, risk) ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Column(Modifier.weight(1f)) {
+                        Text(label)
+                        Text("$id · $risk risk", style = MaterialTheme.typography.bodySmall)
+                    }
+                    Switch(settings.toolToggles[id] == true, { enabled ->
+                        settings = settings.copy(toolToggles = settings.toolToggles + (id to enabled))
+                        viewModel.setToolEnabled(id, enabled)
+                    }, enabled = settings.toolsEnabled)
+                }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f)) {
+                    Text("Google Search grounding")
+                    Text("Gemini may run Google searches; usage can be billable depending on model and tier.", style = MaterialTheme.typography.bodySmall)
+                }
+                Switch(settings.googleSearchGrounding, { enabled ->
+                    settings = settings.copy(googleSearchGrounding = enabled)
+                    viewModel.setGoogleSearchGrounding(enabled)
+                })
+            }
+        }
+        SettingsSection("Long-term memory") {
+            if (!settings.memoryConsentAsked) {
+                Text("Memory is off until you explicitly opt in. Zyra can store useful facts between chats. Passwords, API keys, payment-card numbers and similar secrets are rejected.")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = { settings = settings.copy(memoryEnabled = true, memoryConsentAsked = true); viewModel.setMemoryConsent(true) }) { Text("Enable memory") }
+                    OutlinedButton(onClick = { settings = settings.copy(memoryEnabled = false, memoryConsentAsked = true); viewModel.setMemoryConsent(false) }) { Text("Not now") }
+                }
+            } else {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Allow long-term memory")
+                    Switch(settings.memoryEnabled, { enabled -> settings = settings.copy(memoryEnabled = enabled); viewModel.setMemoryEnabled(enabled) })
+                }
+            }
+            Text("Saved facts")
+            if (memoryFacts.isEmpty()) Text("No memories saved.")
+            memoryFacts.forEach { fact ->
+                Column(Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+                    Text(fact.factKey, style = MaterialTheme.typography.titleSmall)
+                    Text(fact.factValue)
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        OutlinedButton(onClick = {
+                            editingMemoryId = fact.id
+                            newMemoryKey = fact.factKey
+                            newMemoryValue = fact.factValue
+                        }) { Text("Edit") }
+                        OutlinedButton(onClick = { memoryViewModel.delete(fact.id) }) { Text("Delete") }
+                    }
+                }
+            }
+            OutlinedTextField(newMemoryKey, { newMemoryKey = it }, modifier = Modifier.fillMaxWidth(), label = { Text(if (editingMemoryId == null) "Memory title" else "Edit title") })
+            OutlinedTextField(newMemoryValue, { newMemoryValue = it }, modifier = Modifier.fillMaxWidth(), label = { Text("Memory fact") }, minLines = 2)
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Button(onClick = {
+                    val oldId = editingMemoryId
+                    memoryViewModel.save(newMemoryKey, newMemoryValue)
+                    if (oldId != null) memoryViewModel.delete(oldId)
+                    editingMemoryId = null
+                    newMemoryKey = ""
+                    newMemoryValue = ""
+                }, enabled = newMemoryKey.isNotBlank() && newMemoryValue.isNotBlank()) { Text("Save memory") }
+                OutlinedButton(onClick = { shareText(context, memoryViewModel.export(), "text/plain") }, enabled = memoryFacts.isNotEmpty()) { Text("Export") }
+            }
+            memoryError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+            OutlinedButton(onClick = { memoryViewModel.clearError() }) { Text("Clear message") }
         }
         SettingsSection("Appearance") {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Reduce effects"); Switch(reduceEffects, { reduceEffects = it }) }
