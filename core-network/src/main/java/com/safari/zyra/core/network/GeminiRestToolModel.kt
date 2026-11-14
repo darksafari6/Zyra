@@ -104,7 +104,7 @@ class GeminiRestToolModel @Inject constructor(private val http: HttpClient) {
             }
         }
         if (groundingSources.isNotEmpty()) {
-            val sources = groundingSources.joinToString("\n") { pair -> "- " + pair.first + ": " + pair.second }
+            val sources = groundingSources.joinToString("\n") { pair -> "- [" + pair.first.replace("[", "(").replace("]", ")") + "](" + pair.second + ")" }
             emit(GeminiPart.Text("\n\nSources (Google Search grounding):\n" + sources))
         }
     }.flowOn(Dispatchers.IO)
