@@ -40,7 +40,7 @@ class ToolExecutionEngine @Inject constructor(
         val policyResult = policy.evaluate(tool, current, confirmedMedium)
         if (policyResult != null) {
             val pendingAction = PendingToolAction(UUID.randomUUID().toString(), name, JSONObject(arguments.toString()),
-                preview(tool, arguments), tool.risk, tool.requiredPermissions)
+                preview(tool, arguments), tool.risk, tool.permissionsFor(arguments))
             pendingState.value = pendingAction
             val result = ToolResult.NeedsUserAction(policyResult.detail, pendingAction.id)
             audit.record(ToolAuditEntry(pendingAction.id, name, auditPreview(tool, arguments), result))
