@@ -12,6 +12,8 @@ import android.os.BatteryManager
 import android.os.Build
 import android.provider.CalendarContract
 import android.provider.Settings
+import com.safari.zyra.core.data.SettingsRepository
+import kotlinx.coroutines.flow.first
 import android.telephony.TelephonyManager
 import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
@@ -20,7 +22,7 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 @Singleton
-class AndroidToolFactory @Inject constructor(@ApplicationContext private val context: Context) {
+class AndroidToolFactory @Inject constructor(@ApplicationContext private val context: Context, private val settings: SettingsRepository) {
     private val stringSchema = { key: String, description: String ->
         JSONObject().put("type", "OBJECT")
             .put("properties", JSONObject().put(key, JSONObject().put("type", "STRING").put("description", description)))
@@ -29,7 +31,7 @@ class AndroidToolFactory @Inject constructor(@ApplicationContext private val con
     private fun tool(
         name: String, description: String, schema: JSONObject, risk: ToolRisk,
         permissions: Set<String> = emptySet(), block: suspend (JSONObject) -> ToolResult
-    ) = FunctionalZyraTool(name, description, schema, risk, permissions, block)
+    ) = FunctionalZyraTool(name, description, schema, risk, permissions, action = block)
 
     fun create(): Set<ZyraTool> = setOf(
         tool("open_url", "Open a web URL in the user's browser.", stringSchema("url", "An http or https URL."), ToolRisk.LOW) { args ->
