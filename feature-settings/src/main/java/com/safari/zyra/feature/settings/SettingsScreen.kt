@@ -177,6 +177,9 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, onRequestA
                 Triple("wifi_settings", "Open Wi-Fi settings panel", "LOW"),
                 Triple("bluetooth_settings", "Open Bluetooth settings", "LOW"),
                 Triple("brightness", "Screen brightness (Modify system settings permission)", "MEDIUM"),
+                Triple("current_location", "Read current location when explicitly asked", "MEDIUM"),
+                Triple("clipboard_read", "Read clipboard only when explicitly asked", "HIGH"),
+                Triple("notification_summary", "Summarize notifications (requires Notification access)", "MEDIUM"),
                 Triple("remember_fact", "Remember a fact (memory opt-in required)", "MEDIUM"),
                 Triple("forget_fact", "Forget a saved fact", "HIGH")
             )
