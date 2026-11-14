@@ -19,6 +19,8 @@ import com.safari.zyra.core.network.GeminiClient
 import com.safari.zyra.core.network.GeminiRestClient
 import com.safari.zyra.core.network.GeminiLiveClient
 import com.safari.zyra.core.network.GeminiLiveTransport
+import com.safari.zyra.core.network.GeminiToolExecutor
+import com.safari.zyra.device.control.ToolExecutionEngine
 import com.safari.zyra.feature.voice.AndroidLiveAudioEngine
 import com.safari.zyra.feature.voice.LiveAudioEngine
 import dagger.Binds
@@ -43,6 +45,7 @@ abstract class AppBindingsModule {
     @Binds @Singleton abstract fun bindGeminiClient(implementation: GeminiRestClient): GeminiClient
     @Binds @Singleton abstract fun bindGeminiLiveTransport(implementation: GeminiLiveClient): GeminiLiveTransport
     @Binds @Singleton abstract fun bindLiveAudioEngine(implementation: AndroidLiveAudioEngine): LiveAudioEngine
+    @Binds @Singleton abstract fun bindGeminiToolExecutor(implementation: ToolExecutionEngine): GeminiToolExecutor
 
     companion object {
         @Provides @Singleton
