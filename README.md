@@ -182,3 +182,10 @@ Never commit API keys, SDK licence keys, custom wake-word model assets or signin
 - The Actions log is currently in-memory only. Persistent action history, direct calling, and background wake/automation are intentionally not part of this delivery.
 
 Never commit API keys, notification contents, clipboard contents, location history, or signing credentials.
+
+
+## Piece 10 — Close the gaps (in progress)
+
+This branch fixes the final Fast voice sentence voice selection, adds the opt-in stop-while-speaking setting (off by default), routes Fast voice through the shared tool policy and opt-in memory, allows tool calling with an attached image, offers Android TTS data installation for a missing selected voice, removes unused AudioRecorder/module marker classes, and runs CI on direct pushes to `main` as well as pull requests.
+
+**Piece 10 is not complete yet.** Gemini Live function calling and resumption/fallback, ephemeral-token backend provisioning, full Settings/Onboarding Urdu localization, optional generation parameters, OFL font packaging, the AGSL effect, Gemini-generated rolling summaries, the complete privacy surface, and the requested test suites remain open. See [docs/piece-10-status.md](docs/piece-10-status.md) for the exact status, official protocol references and real-device checklist. Do not treat this branch as release-ready until CI is green and the manual device checks pass.
