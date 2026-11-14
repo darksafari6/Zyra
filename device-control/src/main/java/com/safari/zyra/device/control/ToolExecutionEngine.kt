@@ -71,7 +71,10 @@ class ToolExecutionEngine @Inject constructor(
         val id = UUID.randomUUID().toString()
         val result = runCatching { withTimeout(12_000) { tool.execute(args) } }
             .getOrElse { failure -> ToolResult.Failed(failure.message ?: "The action timed out or failed.") }
-        audit.record(ToolAuditEntry(id, tool.name, preview(tool, args), result))
+        val auditResult = if (tool.name in setOf("clipboard_read", "notification_summary", "current_location") &&
+            result is ToolResult.Success) ToolResult.Success("Sensitive data was accessed at the user's request; contents omitted from the action log.")
+        else result
+        audit.record(ToolAuditEntry(id, tool.name, preview(tool, args), auditResult))
         return result
     }
 
