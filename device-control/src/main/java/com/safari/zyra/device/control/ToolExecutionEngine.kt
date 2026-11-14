@@ -95,6 +95,7 @@ class ToolExecutionEngine @Inject constructor(
         "message" -> "Message composer requested; recipient and body redacted."
         "clipboard_read", "notification_summary", "current_location" -> "Sensitive read requested; content redacted."
         "remember_fact" -> "Memory write requested; fact value redacted."
+        "forget_fact" -> "Memory deletion requested; memory title redacted."
         else -> preview(tool, args).take(300)
     }
 }
