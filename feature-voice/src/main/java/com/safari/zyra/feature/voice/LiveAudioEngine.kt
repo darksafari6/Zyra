@@ -42,8 +42,11 @@ class AndroidLiveAudioEngine : LiveAudioEngine {
         val minBuffer = AudioRecord.getMinBufferSize(
             INPUT_RATE, AudioFormat.CHANNEL_IN_MONO, AudioFormat.ENCODING_PCM_16BIT
         )
-        check(minBuffer > 0) { "This device does not support 16 kHz PCM recording." }
-        val audioRecord = RecordBuilder()
+        if (minBuffer <= 0) {
+            capturing.set(false)
+            error("This device does not support 16 kHz PCM recording.")
+        }
+        val audioRecord = try { RecordBuilder()
             .setAudioSource(MediaRecorder.AudioSource.VOICE_COMMUNICATION)
             .setAudioFormat(AudioFormat.Builder()
                 .setSampleRate(INPUT_RATE)
@@ -51,15 +54,18 @@ class AndroidLiveAudioEngine : LiveAudioEngine {
                 .setEncoding(AudioFormat.ENCODING_PCM_16BIT)
                 .build())
             .setBufferSizeInBytes(maxOf(minBuffer * 2, CHUNK_BYTES * 2))
-            .build()
+            .build() } catch (failure: Throwable) {
+                capturing.set(false)
+                throw failure
+            }
         recorder = audioRecord
-        if (AcousticEchoCanceler.isAvailable()) {
-            echoCanceler = AcousticEchoCanceler.create(audioRecord.audioSessionId)?.apply { enabled = true }
-        }
-        if (NoiseSuppressor.isAvailable()) {
-            noiseSuppressor = NoiseSuppressor.create(audioRecord.audioSessionId)?.apply { enabled = true }
-        }
         try {
+            if (AcousticEchoCanceler.isAvailable()) {
+                echoCanceler = AcousticEchoCanceler.create(audioRecord.audioSessionId)?.apply { enabled = true }
+            }
+            if (NoiseSuppressor.isAvailable()) {
+                noiseSuppressor = NoiseSuppressor.create(audioRecord.audioSessionId)?.apply { enabled = true }
+            }
             audioRecord.startRecording()
             val chunk = ByteArray(CHUNK_BYTES)
             while (capturing.get()) {
