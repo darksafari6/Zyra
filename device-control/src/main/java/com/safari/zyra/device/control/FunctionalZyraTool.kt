@@ -8,8 +8,10 @@ class FunctionalZyraTool(
     override val parametersSchema: JSONObject,
     override val risk: ToolRisk,
     override val requiredPermissions: Set<String> = emptySet(),
+    private val permissionResolver: ((JSONObject) -> Set<String>)? = null,
     private val action: suspend (JSONObject) -> ToolResult
 ) : ZyraTool {
+    override fun permissionsFor(arguments: JSONObject): Set<String> = permissionResolver?.invoke(arguments) ?: requiredPermissions
     override suspend fun execute(arguments: JSONObject): ToolResult = try {
         action(arguments)
     } catch (security: SecurityException) {
