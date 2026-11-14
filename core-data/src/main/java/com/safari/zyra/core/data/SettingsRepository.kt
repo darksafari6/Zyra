@@ -21,4 +21,5 @@ interface SettingsRepository {
     suspend fun setMemoryConsent(accepted: Boolean)
     suspend fun setMemoryEnabled(enabled: Boolean)
     suspend fun setGoogleSearchGrounding(enabled: Boolean)
+    suspend fun setDirectCallsEnabled(enabled: Boolean)
 }
