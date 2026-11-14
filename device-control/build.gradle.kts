@@ -13,6 +13,7 @@ android {
 kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 dependencies {
     implementation(project(":core-data"))
+    implementation(project(":core-network"))
     implementation(libs.hilt.android)
     implementation(libs.kotlinx.coroutines.android)
     ksp(libs.hilt.compiler)
