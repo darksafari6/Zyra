@@ -159,8 +159,8 @@ class ChatViewModel @Inject constructor(
                         }
                     }
                 } else emptyList()
-                val replyFlow = if ((enabledDeclarations.isNotEmpty() || currentSettings.googleSearchGrounding) && image == null) {
-                    toolConversationClient.streamReply(history, prompt, enabledDeclarations, groundedSystemPrompt)
+                val replyFlow = if (enabledDeclarations.isNotEmpty() || currentSettings.googleSearchGrounding) {
+                    toolConversationClient.streamReply(history, prompt, enabledDeclarations, groundedSystemPrompt, image)
                 } else {
                     geminiClient.streamReply(
                         apiKey = apiKeyStore.read(),
