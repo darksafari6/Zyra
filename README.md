@@ -121,7 +121,7 @@ This branch adds the first reusable foundations for the Piece 8 work:
 
 - Added a Ktor WebSocket Live API transport in `core-network`. It uses the user's saved API key, chosen Live model ID and system instruction; sends 16 kHz signed PCM16 mono chunks; receives all model-turn audio parts and input/output transcription events; and surfaces interruption and GoAway signals.
 - Added a `LiveAudioEngine` boundary and Android implementation using `VOICE_COMMUNICATION`, optional AcousticEchoCanceler/NoiseSuppressor, 100 ms PCM input chunks and 24 kHz PCM output.
-- Added a user-started microphone-type foreground-service shell with a persistent Talk/Stop notification and a Quick Settings tile. The service does not open the microphone automatically; the notification explicitly says wake word is off.
+- Added a user-started microphone-type foreground-service shell with a persistent Talk/Stop notification and a Quick Settings tile. Talk launches the Fast voice session after checking/requesting microphone permission. The service does not open the microphone automatically; the notification explicitly says wake word is off.
 - Added `WakeWordEngine` as an offline-only interface with a safe unconfigured implementation. No background audio is captured until a real local model is packaged and licensed.
 - Added architecture, wake-word engine evaluation, permission rationale, battery measurement method and physical-device test matrix under `docs/`.
 
