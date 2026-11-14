@@ -253,8 +253,7 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, onRequestA
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = {
                     val oldId = editingMemoryId
-                    memoryViewModel.save(newMemoryKey, newMemoryValue)
-                    if (oldId != null) memoryViewModel.delete(oldId)
+                    memoryViewModel.save(newMemoryKey, newMemoryValue, oldId)
                     editingMemoryId = null
                     newMemoryKey = ""
                     newMemoryValue = ""
