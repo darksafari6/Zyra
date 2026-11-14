@@ -2,7 +2,7 @@ name: Android build
 
 on:
   pull_request:
-    branches: [main, piece-7-completion]
+    branches: [main, piece-7-completion, piece-8-zyra-everywhere]
   push:
     tags:
       - "v*"
