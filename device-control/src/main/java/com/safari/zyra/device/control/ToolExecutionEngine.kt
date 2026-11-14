@@ -1,6 +1,8 @@
 package com.safari.zyra.device.control
 
 import com.safari.zyra.core.data.SettingsRepository
+import com.safari.zyra.core.network.GeminiToolExecution
+import com.safari.zyra.core.network.GeminiToolExecutor
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,12 +21,17 @@ class ToolExecutionEngine @Inject constructor(
     private val settings: SettingsRepository,
     private val audit: ToolAuditLogger,
     private val policy: ToolPolicy
-) {
+) : GeminiToolExecutor {
     private val confirmedMedium = mutableSetOf<String>()
     private val pendingState = MutableStateFlow<PendingToolAction?>(null)
     val pending: StateFlow<PendingToolAction?> = pendingState.asStateFlow()
 
-    suspend fun execute(name: String, arguments: JSONObject): ToolResult {
+    override suspend fun execute(name: String, arguments: JSONObject): GeminiToolExecution {
+        val result = executeTool(name, arguments)
+        return GeminiToolExecution(when (result) { is ToolResult.Success -> "SUCCESS"; is ToolResult.NeedsUserAction -> "NEEDS_USER_ACTION"; is ToolResult.Denied -> "DENIED"; is ToolResult.Failed -> "FAILED" }, result.detail)
+    }
+
+    suspend fun executeTool(name: String, arguments: JSONObject): ToolResult {
         val tool = registry.get(name) ?: return ToolResult.Denied("This tool is not available.")
         val current = settings.settings.first()
         val policyResult = policy.evaluate(tool, current, confirmedMedium)
