@@ -11,7 +11,6 @@ import io.ktor.http.HttpStatusCode
 import io.ktor.utils.io.readUTF8Line
 import javax.inject.Inject
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
@@ -19,10 +18,14 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 class GeminiRestToolModel @Inject constructor(private val http: HttpClient) {
-    suspend fun streamGenerate(
-        apiKey: String, modelId: String, systemPrompt: String,
-        contents: List<GeminiToolTurn>, declarations: List<GeminiFunctionDeclaration>, googleSearchGrounding: Boolean = false
-    ): Flow<List<GeminiPart>> = flow {
+    fun streamGenerate(
+        apiKey: String,
+        modelId: String,
+        systemPrompt: String,
+        contents: List<GeminiToolTurn>,
+        declarations: List<GeminiFunctionDeclaration>,
+        googleSearchGrounding: Boolean = false
+    ): Flow<GeminiPart> = flow {
         require(apiKey.isNotBlank()) { "Add your Gemini API key in Settings." }
         val cleanModel = modelId.trim().removePrefix("models/")
         require(Regex("^[A-Za-z0-9._-]+$").matches(cleanModel)) { "Invalid Gemini model ID." }
@@ -55,17 +58,16 @@ class GeminiRestToolModel @Inject constructor(private val http: HttpClient) {
             .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", systemPrompt))))
             .put("contents", contentJson)
             .put("tools", tools)
-        val response = http.post("https://generativelanguage.googleapis.com/v1beta/models/$cleanModel:streamGenerateContent?alt=sse") {
+        val response = http.post("https://generativelanguage.googleapis.com/v1beta/models/" + cleanModel + ":streamGenerateContent?alt=sse") {
             header("x-goog-api-key", apiKey)
             header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
             setBody(body.toString())
         }
         if (response.status != HttpStatusCode.OK) {
             val error = response.bodyAsChannel().readUTF8Line().orEmpty()
-            error("Gemini function-calling request failed (HTTP ${response.status.value}): ${error.take(400)}")
+            error("Gemini function-calling request failed (HTTP " + response.status.value + "): " + error.take(400))
         }
         val channel = response.bodyAsChannel()
-        val collected = mutableListOf<GeminiPart>()
         val groundingSources = linkedSetOf<Pair<String, String>>()
         while (true) {
             val line = channel.readUTF8Line() ?: break
@@ -84,20 +86,19 @@ class GeminiRestToolModel @Inject constructor(private val http: HttpClient) {
             val parts = candidate?.optJSONObject("content")?.optJSONArray("parts") ?: continue
             for (i in 0 until parts.length()) {
                 val item = parts.optJSONObject(i) ?: continue
-                item.optString("text").takeIf { it.isNotBlank() }?.let { collected += GeminiPart.Text(it) }
+                item.optString("text").takeIf { it.isNotBlank() }?.let { emit(GeminiPart.Text(it)) }
                 item.optJSONObject("functionCall")?.let { function ->
-                    collected += GeminiPart.FunctionCall(GeminiFunctionCall(
+                    emit(GeminiPart.FunctionCall(GeminiFunctionCall(
                         function.optString("id").takeIf { it.isNotBlank() },
                         function.optString("name"),
                         function.optJSONObject("args") ?: JSONObject()
-                    ))
+                    )))
                 }
             }
         }
         if (groundingSources.isNotEmpty()) {
             val sources = groundingSources.joinToString("\n") { pair -> "- " + pair.first + ": " + pair.second }
-            collected += GeminiPart.Text("\n\nSources (Google Search grounding):\n" + sources)
+            emit(GeminiPart.Text("\n\nSources (Google Search grounding):\n" + sources))
         }
-        emit(collected)
     }.flowOn(Dispatchers.IO)
 }
