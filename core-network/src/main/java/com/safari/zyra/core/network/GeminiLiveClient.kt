@@ -6,12 +6,12 @@ import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.http.URLProtocol
 import io.ktor.websocket.Frame
 import io.ktor.websocket.WebSocketSession
-import io.ktor.websocket.close
 import io.ktor.websocket.send
 import java.io.Closeable
 import java.util.concurrent.atomic.AtomicBoolean
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withTimeout
@@ -138,6 +138,6 @@ class GeminiLiveClient @Inject constructor(
         connected.set(false)
         val active = socket
         socket = null
-        active?.let { runCatching { it.close() } }
+        active?.let { it.cancel() }
     }
 }
