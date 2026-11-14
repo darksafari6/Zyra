@@ -104,6 +104,9 @@ import kotlinx.coroutines.launch
 @Composable
 fun ChatScreen(
     onOpenSettings: () -> Unit,
+    sharedText: String? = null,
+    sharedImage: Uri? = null,
+    onSharedContentConsumed: () -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -125,6 +128,11 @@ fun ChatScreen(
     }
     var draft by remember { mutableStateOf("") }
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
+    LaunchedEffect(sharedText, sharedImage) {
+        if (sharedText != null) draft = sharedText
+        if (sharedImage != null) selectedImage = sharedImage
+        if (sharedText != null || sharedImage != null) onSharedContentConsumed()
+    }
     var showAttachMenu by remember { mutableStateOf(false) }
     var showConversationPanel by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
