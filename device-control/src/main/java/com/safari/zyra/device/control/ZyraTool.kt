@@ -18,6 +18,7 @@ interface ZyraTool {
     val parametersSchema: JSONObject
     val risk: ToolRisk
     val requiredPermissions: Set<String>
+    fun permissionsFor(arguments: JSONObject): Set<String> = requiredPermissions
     suspend fun execute(arguments: JSONObject): ToolResult
 }
 
