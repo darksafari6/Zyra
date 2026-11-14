@@ -180,14 +180,15 @@ class AndroidToolFactory @Inject constructor(@ApplicationContext private val con
         },
         tool("brightness", "Set screen brightness from 0 to 100 percent.", JSONObject()
             .put("type", "OBJECT").put("properties", JSONObject().put("percent", JSONObject().put("type", "INTEGER")))
-            .put("required", JSONArray().put("percent")), ToolRisk.MEDIUM, setOf(Manifest.permission.WRITE_SETTINGS)) { args ->
+            .put("required", JSONArray().put("percent")), ToolRisk.MEDIUM) { args ->
             if (!Settings.System.canWrite(context)) {
                 launch(Intent(Settings.ACTION_MANAGE_WRITE_SETTINGS, Uri.parse("package:${context.packageName}")))
                 return@tool ToolResult.NeedsUserAction("Android opened the Modify system settings permission page. Grant permission, then retry brightness.")
             }
             val percent = args.getInt("percent"); require(percent in 1..100) { "Brightness must be from 1 to 100 percent." }
-            Settings.System.putInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, percent * 255 / 100)
-            ToolResult.Success("Set screen brightness to approximately $percent percent.")
+            val changed = Settings.System.putInt(context.contentResolver, Settings.System.SCREEN_BRIGHTNESS, percent * 255 / 100)
+            if (changed) ToolResult.Success("Set screen brightness to approximately $percent percent.")
+            else ToolResult.Failed("Android did not accept the brightness change.")
         }
     )
 
