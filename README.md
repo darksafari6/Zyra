@@ -113,3 +113,41 @@ Still required on physical devices/emulators:
 - Signed release only after repository secrets and the release variable are configured.
 
 Never commit API keys, signing credentials or keystore files.
+
+
+## Piece 8 — Zyra Everywhere (foundation pass)
+
+This branch adds the first reusable foundations for the Piece 8 work:
+
+- Added a Ktor WebSocket Live API transport in `core-network`. It uses the user's saved API key, chosen Live model ID and system instruction; sends 16 kHz signed PCM16 mono chunks; receives all model-turn audio parts and input/output transcription events; and surfaces interruption and GoAway signals.
+- Added a `LiveAudioEngine` boundary and Android implementation using `VOICE_COMMUNICATION`, optional AcousticEchoCanceler/NoiseSuppressor, 100 ms PCM input chunks and 24 kHz PCM output.
+- Added a user-started microphone-type foreground-service shell with a persistent Talk/Stop notification and a Quick Settings tile. The service does not open the microphone automatically; the notification explicitly says wake word is off.
+- Added `WakeWordEngine` as an offline-only interface with a safe unconfigured implementation. No background audio is captured until a real local model is packaged and licensed.
+- Added architecture, wake-word engine evaluation, permission rationale, battery measurement method and physical-device test matrix under `docs/`.
+
+### Piece 8 is not yet complete
+
+The current branch is a foundation pass, not a complete assistant rollout. The following are still outstanding and must remain unavailable/disabled until implemented and tested:
+
+- A licensed and packaged `Hey Zyra` model, real keyword inference, sensitivity calibration, call/competing-recorder pause logic and OEM battery guidance UI.
+- Full Fast/Live engine selector and automatic Fast fallback UI for missing model, network loss or Live errors.
+- Audio session orchestration, server session resumption/reconnect policy, caption UI and end-to-end interruption playback queue handling.
+- Notification/microphone permission request UX and a settings toggle that controls the foreground service.
+- Compact translucent VoiceInteractionService session and default-assistant role setup.
+- Glance `Ask Zyra` widget, dynamic shortcuts, ACTION_SEND text/image share target, and the Privacy screen/stop-everything control.
+- Automated protocol/audio tests and CI validation of this branch.
+
+Do not enable wake-word listening by default or claim it is active. The selected candidate is Porcupine, conditional on licence and a generated phrase model; see [docs/wake-word.md](docs/wake-word.md).
+
+### Piece 8 references
+
+- [Architecture and privacy invariants](docs/architecture-piece-8.md)
+- [Wake-word engine comparison and selection](docs/wake-word.md)
+- [Permissions, battery method and device test plan](docs/permissions-piece-8.md)
+- [Official Gemini Live API overview](https://aistudio.google.com/docs/live-api)
+- [Official Gemini Live API capabilities](https://aistudio.google.com/docs/live-api/capabilities)
+- [Official Gemini Live WebSocket guide](https://aistudio.google.com/docs/live-api/get-started-websocket)
+
+### Piece 8 verification status
+
+No Gradle build, lint, unit test, instrumentation test or physical-device test has been run from this editing session. The branch must pass GitHub Actions before it is considered build-verified. Physical testing remains mandatory for screen-off/Doze, OEM background restrictions, notification denial, microphone permission revocation, calls, Bluetooth route changes and the battery matrix described in `docs/permissions-piece-8.md`.
