@@ -148,3 +148,37 @@ The offline WakeWordEngine contract remains fail-closed. A real custom Hey Zyra 
 No local Gradle build or physical-device test has been run from this editing session. Do not treat Piece 8 as release-ready until GitHub Actions is green and the device matrix above passes.
 
 Never commit API keys, SDK licence keys, custom wake-word model assets or signing credentials.
+
+
+## Piece 9 — Phone control, tool safety and long-term memory
+
+### Added in this branch
+
+- A typed ZyraTool contract with a name, description, JSON parameter schema, LOW/MEDIUM/HIGH risk, required Android permissions and Success / NeedsUserAction / Denied / Failed results.
+- A registry that only exposes individually enabled tools to Gemini. The global device-tools kill switch and every per-tool toggle default off.
+- Gemini function calling over the existing Ktor HTTP client: function declarations are sent in the request, streamed functionCall parts are parsed, tools execute in the app, functionResponse parts are sent back, and the model continues. The loop is bounded to four tool-call rounds; tool execution has a 12-second timeout and network requests use the configured Ktor timeout.
+- A Compose confirmation bottom sheet: LOW actions run directly, MEDIUM actions require one confirmation per tool per app session, and HIGH actions show the exact arguments and require confirmation every time. Runtime permission prompts are launched only after the user confirms.
+- Built-in tools: open app, open URL, web search handoff, dialer handoff, SMS/WhatsApp prefill, alarm, timer, calendar event, flashlight, media volume, media-key controls, navigation, battery/time/connectivity, Wi-Fi settings, Bluetooth settings and brightness.
+- Optional sensitive-data tools: current approximate/cached location, clipboard text (only exposed to Gemini when the prompt explicitly asks for clipboard content), and notification summaries. Notification capture is held in memory and remains disabled unless both the global switch and its individual toggle are enabled; Android Notification access is separately required.
+- A session-only Actions log with timestamp, tool, result and redaction of clipboard/location/notification contents. The log is not persisted across app restarts.
+- Room version 4 memory facts with a 3→4 migration. Memory starts disabled and requires explicit first-use consent. The Settings memory section supports viewing, editing, deleting and exporting facts. Memory injection is limited to the latest 20 facts and 2,000 characters. Obvious passwords, API keys, bearer tokens, private-key blocks, JWT-like strings and long card-like number sequences are rejected; this is a heuristic, not a guarantee, so secrets must never be entered.
+- Optional Google Search grounding through Gemini's built-in google_search tool. Grounding URLs from Gemini metadata are appended as sources in the chat. Availability depends on the chosen model and API tier and can incur charges; check the live pricing page before enabling.
+- The tool catalogue, privacy/policy notes and manual device checklist are in docs/piece-9-tool-catalogue.md, docs/piece-9-privacy-and-policy.md and docs/piece-9-manual-test-checklist.md.
+
+### Important safety limits
+
+- Calls always open the dialer. Zyra does not place calls directly and does not request CALL_PHONE.
+- SMS and WhatsApp messages are only prefilled; the user must press Send.
+- Wi-Fi and Bluetooth are never toggled silently; Android settings are opened instead.
+- Brightness requires the Android Modify system settings special access.
+- AccessibilityService automation is not implemented. See the Play policy notes before proposing it.
+- Tool settings are opt-in twice: global kill switch plus individual toggles. Sensitive read tools additionally require an explicit user request in the current prompt.
+
+### Verification
+
+- Added fake-model Gemini tool-loop tests, risk-policy tests, secret-filter tests and a Room migration test covering v2→v4.
+- No local Gradle build or physical-device test was run during this editing session. CI must pass on the Piece 9 pull request before this branch can be considered build-verified.
+- Physical testing is still required for permission flows, notification listener access, location freshness, clipboard privacy, camera torch, system intents, brightness access, Android 9–16 behavior, OEM restrictions, TalkBack and RTL Urdu.
+- The Actions log is currently in-memory only. Persistent action history, direct calling, and background wake/automation are intentionally not part of this delivery.
+
+Never commit API keys, notification contents, clipboard contents, location history, or signing credentials.
