@@ -15,6 +15,7 @@ data class ZyraNotificationItem(
 
 class ZyraNotificationListener : NotificationListenerService() {
     override fun onNotificationPosted(sbn: StatusBarNotification) {
+        if (!captureEnabled) return
         val extras = sbn.notification.extras
         val title = extras.getCharSequence(Notification.EXTRA_TITLE)?.toString().orEmpty()
         val text = extras.getCharSequence(Notification.EXTRA_BIG_TEXT)?.toString()
@@ -32,6 +33,8 @@ class ZyraNotificationListener : NotificationListenerService() {
     }
 
     companion object {
+        @Volatile var captureEnabled: Boolean = false
+            set(value) { field = value; if (!value) mutableItems.value = emptyList() }
         private val mutableItems = MutableStateFlow<List<ZyraNotificationItem>>(emptyList())
         val items = mutableItems.asStateFlow()
     }
