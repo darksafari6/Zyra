@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.library)
     alias(libs.plugins.kotlin.android)
+    alias(libs.plugins.ksp)
+    alias(libs.plugins.hilt)
 }
 android {
     namespace = "com.safari.zyra.assistant.service"
@@ -15,4 +17,6 @@ kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarg
 dependencies {
     implementation(project(":core-data"))
     implementation(project(":core-network"))
+    implementation(libs.hilt.android)
+    ksp(libs.hilt.compiler)
 }
