@@ -8,6 +8,8 @@ class SecretDetectorTest {
     @Test fun rejectsLabeledCredentialsAndLongCardLikeNumbers() {
         assertTrue(SecretDetector.looksSensitive("api_key=AIzaSyExampleCredentialValue123456789"))
         assertTrue(SecretDetector.looksSensitive("password: hunter2"))
+        assertTrue(SecretDetector.looksSensitive("My password is hunter2"))
+        assertTrue(SecretDetector.looksSensitive("AIzaSyExampleCredentialValue123456789"))
         assertTrue(SecretDetector.looksSensitive("4111 1111 1111 1111"))
     }
 
