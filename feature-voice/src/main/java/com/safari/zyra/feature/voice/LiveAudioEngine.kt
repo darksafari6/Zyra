@@ -19,6 +19,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.withContext
 import java.io.Closeable
 import java.util.concurrent.atomic.AtomicBoolean
+import javax.inject.Inject
 
 /**
  * Platform boundary for Gemini Live PCM. Calling capturePcm16kMono is the explicit
@@ -30,7 +31,7 @@ interface LiveAudioEngine : Closeable {
     fun interruptPlayback()
 }
 
-class AndroidLiveAudioEngine : LiveAudioEngine {
+class AndroidLiveAudioEngine @Inject constructor() : LiveAudioEngine {
     private val capturing = AtomicBoolean(false)
     @Volatile private var recorder: AudioRecord? = null
     @Volatile private var player: AudioTrack? = null
