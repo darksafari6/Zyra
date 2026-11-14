@@ -11,6 +11,7 @@ data class GeminiFunctionCall(val id: String?, val name: String, val arguments: 
 sealed interface GeminiPart {
     data class Text(val value: String, val raw: JSONObject? = null) : GeminiPart
     data class FunctionCall(val value: GeminiFunctionCall, val raw: JSONObject? = null) : GeminiPart
+    data class Raw(val value: JSONObject) : GeminiPart
 }
 data class GeminiToolTurn(val role: String, val parts: List<GeminiPart>)
 data class GeminiToolExecution(val status: String, val detail: String)
