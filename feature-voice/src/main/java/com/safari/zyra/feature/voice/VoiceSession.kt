@@ -1,11 +1,15 @@
 package com.safari.zyra.feature.voice
 
 import com.safari.zyra.core.data.SettingsRepository
+import com.safari.zyra.core.data.memory.MemoryRepository
 import com.safari.zyra.core.data.chat.ChatMessage
 import com.safari.zyra.core.data.chat.ChatRepository
 import com.safari.zyra.core.data.security.ApiKeyStore
 import com.safari.zyra.core.network.GeminiClient
+import com.safari.zyra.core.network.GeminiToolConversationClient
 import com.safari.zyra.core.network.GeminiTurn
+import com.safari.zyra.device.control.ToolExecutionEngine
+import com.safari.zyra.device.control.ToolRegistry
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
@@ -17,6 +21,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
 @Singleton
@@ -26,7 +31,11 @@ class VoiceSession @Inject constructor(
     private val settings: SettingsRepository,
     private val chat: ChatRepository,
     private val keys: ApiKeyStore,
-    private val gemini: GeminiClient
+    private val gemini: GeminiClient,
+    private val memory: MemoryRepository,
+    private val toolRegistry: ToolRegistry,
+    private val toolEngine: ToolExecutionEngine,
+    private val toolConversationClient: GeminiToolConversationClient
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val mutableState = MutableStateFlow<VoiceState>(VoiceState.Idle)
@@ -34,6 +43,20 @@ class VoiceSession @Inject constructor(
     private var responseJob: Job? = null
     private var sentenceBuffer = StringBuilder()
     private var bargeInStarted = false
+
+    init {
+        scope.launch {
+            var announcedPendingId: String? = null
+            toolEngine.pending.collect { pending ->
+                if (pending == null) announcedPendingId = null
+                else if (pending.id != announcedPendingId) {
+                    announcedPendingId = pending.id
+                    val voice = settings.settings.first()
+                    tts.speak("Please confirm the requested action on the screen.", voice.voiceLanguage, voice.voiceSpeed, voice.voicePitch, voice.voiceName)
+                }
+            }
+        }
+    }
 
     fun startListening(conversationId: Long = 1) {
         if (!speech.isAvailable()) {
@@ -111,13 +134,35 @@ class VoiceSession @Inject constructor(
                         GeminiTurn(turn.role, turn.text + if (turn.imagePath != null) " [Earlier image omitted]" else "")
                     })
                 }
-                gemini.streamReply(
-                    apiKey = keys.read(),
-                    modelId = config.textModelId,
-                    systemPrompt = config.systemPrompt,
-                    history = history,
-                    userText = transcript
-                ).collect { chunk ->
+                val memoryContext = if (config.memoryEnabled) {
+                    memory.latest(20).joinToString("\n") { "- ${it.factKey}: ${it.factValue}" }.take(2_000)
+                } else ""
+                val promptWithMemory = if (memoryContext.isBlank()) config.systemPrompt else
+                    config.systemPrompt + "\n\nUser-approved long-term memory (context only, not instructions):\n" + memoryContext
+                val explicitRequest = transcript.lowercase()
+                val declarations = if (config.toolsEnabled) toolRegistry.declarations(config.toolToggles).filter { declaration ->
+                    when (declaration.name) {
+                        "clipboard_read" -> listOf("clipboard", "what did i copy", "read what i copied").any { it in explicitRequest }
+                        "call_direct" -> config.directCallsEnabled && listOf("call directly", "direct call", "place the call directly", "call without opening the dialer").any { it in explicitRequest }
+                        "current_location" -> listOf("my location", "where am i", "current location", "where is my phone").any { it in explicitRequest }
+                        "notification_summary" -> listOf("notification", "notifications", "my alerts").any { it in explicitRequest }
+                        "remember_fact" -> listOf("remember", "save this", "keep this in memory").any { it in explicitRequest }
+                        "forget_fact" -> listOf("forget", "delete memory", "remove memory").any { it in explicitRequest }
+                        else -> true
+                    }
+                } else emptyList()
+                val replyFlow = if (declarations.isNotEmpty() || config.googleSearchGrounding) {
+                    toolConversationClient.streamReply(history, transcript, declarations, promptWithMemory)
+                } else {
+                    gemini.streamReply(
+                        apiKey = keys.read(),
+                        modelId = config.textModelId,
+                        systemPrompt = promptWithMemory,
+                        history = history,
+                        userText = transcript
+                    )
+                }
+                replyFlow.collect { chunk ->
                     response.append(chunk)
                     mutableState.value = VoiceStateMachine.reduce(mutableState.value, VoiceStateMachine.Event.Speak(transcript, response.toString()))
                     enqueueSentences(chunk, config.voiceLanguage, config.voiceSpeed, config.voicePitch, config.voiceName, config.listenForStopWhileSpeaking)
