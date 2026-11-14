@@ -17,7 +17,8 @@ data class ZyraSettings(
     val memoryEnabled: Boolean = false,
     val memoryConsentAsked: Boolean = false,
     val googleSearchGrounding: Boolean = false,
-    val directCallsEnabled: Boolean = false
+    val directCallsEnabled: Boolean = false,
+    val listenForStopWhileSpeaking: Boolean = false
 ) {
     companion object {
         const val DEFAULT_SYSTEM_PROMPT = "You are Zyra, Safari's AI assistant. Be fast, friendly, concise, and conversational. Speak naturally. Be honest about what you did and did not do. Never claim an action succeeded unless it actually did. Ask only when essential."
