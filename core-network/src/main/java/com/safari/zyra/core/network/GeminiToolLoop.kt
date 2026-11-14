@@ -9,8 +9,8 @@ import org.json.JSONObject
 data class GeminiFunctionDeclaration(val name: String, val description: String, val parameters: JSONObject)
 data class GeminiFunctionCall(val id: String?, val name: String, val arguments: JSONObject)
 sealed interface GeminiPart {
-    data class Text(val value: String) : GeminiPart
-    data class FunctionCall(val value: GeminiFunctionCall) : GeminiPart
+    data class Text(val value: String, val raw: JSONObject? = null) : GeminiPart
+    data class FunctionCall(val value: GeminiFunctionCall, val raw: JSONObject? = null) : GeminiPart
 }
 data class GeminiToolTurn(val role: String, val parts: List<GeminiPart>)
 data class GeminiToolExecution(val status: String, val detail: String)
