@@ -115,39 +115,36 @@ Still required on physical devices/emulators:
 Never commit API keys, signing credentials or keystore files.
 
 
-## Piece 8 — Zyra Everywhere (foundation pass)
+## Piece 8 — Zyra Everywhere
 
-This branch adds the first reusable foundations for the Piece 8 work:
+This branch now includes the usable integration surfaces and a foreground-only Live voice path:
 
-- Added a Ktor WebSocket Live API transport in `core-network`. It uses the user's saved API key, chosen Live model ID and system instruction; sends 16 kHz signed PCM16 mono chunks; receives all model-turn audio parts and input/output transcription events; and surfaces interruption and GoAway signals.
-- Added a `LiveAudioEngine` boundary and Android implementation using `VOICE_COMMUNICATION`, optional AcousticEchoCanceler/NoiseSuppressor, 100 ms PCM input chunks and 24 kHz PCM output.
-- Added a user-started microphone-type foreground-service shell with a persistent Talk/Stop notification and a Quick Settings tile. Talk launches the Fast voice session after checking/requesting microphone permission. The service does not open the microphone automatically; the notification explicitly says wake word is off.
-- Added `WakeWordEngine` as an offline-only interface with a safe unconfigured implementation. No background audio is captured until a real local model is packaged and licensed.
-- Added architecture, wake-word engine evaluation, permission rationale, battery measurement method and physical-device test matrix under `docs/`.
+- Gemini Live WebSocket transport and LiveVoiceSession orchestration: explicit 16 kHz PCM microphone capture, 24 kHz PCM playback, input/output captions, interruption handling and a visible Live/Stop Live control. Fast voice remains available as a manual fallback.
+- Android VoiceInteractionService and VoiceInteractionSessionService, with a compact system assistant surface. Settings includes the Set as default assistant action, which asks Android to grant the assistant role.
+- Quick Settings tile that opens Zyra's visible voice flow, a Glance Ask Zyra home-screen widget, dynamic Ask Zyra and Voice chat shortcuts, and Android Sharesheet support for shared text or a single image.
+- A Stop all assistant activity privacy action. Voice sessions are also stopped when the app leaves the foreground.
+- The foreground microphone-service shell is registered but is not started automatically. Background wake-word listening remains disabled.
 
-### Piece 8 is not yet complete
+### External requirement: Hey Zyra wake word
 
-The current branch is a foundation pass, not a complete assistant rollout. The following are still outstanding and must remain unavailable/disabled until implemented and tested:
+The offline WakeWordEngine contract remains fail-closed. A real custom Hey Zyra detector requires a licensed wake-word SDK account and the generated phrase model (for example, a Picovoice .ppn model). Those account-specific assets cannot be generated or safely embedded without the owner's licence and model. No microphone is opened for wake-word detection, and the app must not claim that Hey Zyra is listening.
 
-- A licensed and packaged `Hey Zyra` model, real keyword inference, sensitivity calibration, call/competing-recorder pause logic and OEM battery guidance UI.
-- Full Fast/Live engine selector and automatic Fast fallback UI for missing model, network loss or Live errors.
-- Audio session orchestration, server session resumption/reconnect policy, caption UI and end-to-end interruption playback queue handling.
-- Notification/microphone permission request UX and a settings toggle that controls the foreground service.
-- Compact translucent VoiceInteractionService session and default-assistant role setup.
-- Glance `Ask Zyra` widget, dynamic shortcuts, ACTION_SEND text/image share target, and the Privacy screen/stop-everything control.
-- Automated protocol/audio tests and CI validation of this branch.
+### Remaining verification and hardening
 
-Do not enable wake-word listening by default or claim it is active. The selected candidate is Porcupine, conditional on licence and a generated phrase model; see [docs/wake-word.md](docs/wake-word.md).
+- Validate the Gemini Live wire protocol against the exact model available to the user's API key; implement session resumption and automatic Fast fallback on GoAway/network loss.
+- Package and test the licensed local wake-word model, sensitivity control, call/audio-focus pause behavior and OEM battery guidance after the owner supplies the model/licence.
+- Test the VoiceInteraction role, notification behavior, share intents, widget and Quick Settings tile on Android 9–16 and OEM devices.
+- Run lint, unit tests, assembleDebug and physical-device microphone/route/Doze tests. The GitHub Actions run for this branch is the build gate; a queued/running job is not a pass.
 
 ### Piece 8 references
 
 - [Architecture and privacy invariants](docs/architecture-piece-8.md)
-- [Wake-word engine comparison and selection](docs/wake-word.md)
+- [Wake-word engine comparison and external asset requirement](docs/wake-word.md)
 - [Permissions, battery method and device test plan](docs/permissions-piece-8.md)
 - [Official Gemini Live API overview](https://aistudio.google.com/docs/live-api)
 - [Official Gemini Live API capabilities](https://aistudio.google.com/docs/live-api/capabilities)
 - [Official Gemini Live WebSocket guide](https://aistudio.google.com/docs/live-api/get-started-websocket)
 
-### Piece 8 verification status
+No local Gradle build or physical-device test has been run from this editing session. Do not treat Piece 8 as release-ready until GitHub Actions is green and the device matrix above passes.
 
-No Gradle build, lint, unit test, instrumentation test or physical-device test has been run from this editing session. The branch must pass GitHub Actions before it is considered build-verified. Physical testing remains mandatory for screen-off/Doze, OEM background restrictions, notification denial, microphone permission revocation, calls, Bluetooth route changes and the battery matrix described in `docs/permissions-piece-8.md`.
+Never commit API keys, SDK licence keys, custom wake-word model assets or signing credentials.
