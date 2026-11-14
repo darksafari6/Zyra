@@ -61,7 +61,7 @@ class ChatViewModel @Inject constructor(
 
     fun setReduceEffects(enabled: Boolean) { viewModelScope.launch { settingsRepository.setReduceEffects(enabled) } }
 
-    fun startVoice() { if (!mutableState.value.isStreaming) voiceSession.startListening(activeConversationId.value) }
+    fun startVoice() { if (!mutableState.value.isStreaming) { liveVoiceSession.stop(); voiceSession.startListening(activeConversationId.value) } }
     fun stopVoice() = voiceSession.stop()
     fun startLiveVoice() { if (!mutableState.value.isStreaming) { voiceSession.stop(); liveVoiceSession.start() } }
     fun stopLiveVoice() = liveVoiceSession.stop()
@@ -74,6 +74,7 @@ class ChatViewModel @Inject constructor(
         val prompt = text.trim().ifBlank { if (imageUri != null) "Please describe and analyze this image." else "" }
         if (prompt.isBlank() || mutableState.value.isStreaming) return
         if (mutableState.value.voiceState !is VoiceState.Idle) voiceSession.stop()
+        liveVoiceSession.stop()
         viewModelScope.launch {
             mutableState.update { it.copy(isStreaming = true, streamingText = "", error = null) }
             try {
