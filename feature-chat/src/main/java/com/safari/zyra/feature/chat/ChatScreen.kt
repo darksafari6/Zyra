@@ -104,6 +104,9 @@ import kotlinx.coroutines.launch
 @Composable
 fun ChatScreen(
     onOpenSettings: () -> Unit,
+    sharedText: String? = null,
+    sharedImage: Uri? = null,
+    onSharedContentConsumed: () -> Unit = {},
     viewModel: ChatViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -111,12 +114,16 @@ fun ChatScreen(
     val lowPerformance = remember { PerformanceTier.current(context).usesSimpleMotion }
     val haptic = LocalHapticFeedback.current
     var showMicRationale by remember { mutableStateOf(false) }
+    var requestingLiveVoice by remember { mutableStateOf(false) }
     var showVoiceMode by remember { mutableStateOf(false) }
     val micPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
         if (granted) {
             viewModel.startVoice()
             showVoiceMode = true
         } else viewModel.voicePermissionDenied()
+    }
+    val liveMicPermission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+        if (granted) viewModel.startLiveVoice() else viewModel.voicePermissionDenied()
     }
     val listening = state.voiceState is VoiceState.Listening
     LaunchedEffect(listening) {
@@ -125,6 +132,11 @@ fun ChatScreen(
     }
     var draft by remember { mutableStateOf("") }
     var selectedImage by remember { mutableStateOf<Uri?>(null) }
+    LaunchedEffect(sharedText, sharedImage) {
+        if (sharedText != null) draft = sharedText
+        if (sharedImage != null) selectedImage = sharedImage
+        if (sharedText != null || sharedImage != null) onSharedContentConsumed()
+    }
     var showAttachMenu by remember { mutableStateOf(false) }
     var showConversationPanel by remember { mutableStateOf(false) }
     var searchQuery by remember { mutableStateOf("") }
@@ -349,6 +361,13 @@ fun ChatScreen(
                     }
                 }
             }
+            TextButton(onClick = {
+                if (state.liveVoiceState.status != "Idle") viewModel.stopLiveVoice()
+                else if (ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) viewModel.startLiveVoice()
+                else { requestingLiveVoice = true; showMicRationale = true }
+            }, enabled = !state.isStreaming) {
+                Text(if (state.liveVoiceState.status == "Idle") "LIVE" else "STOP LIVE", color = ZyraColors.cyan)
+            }
             Spacer(Modifier.width(4.dp))
             JellyOrb(
                 modifier = Modifier.size(42.dp),
@@ -374,6 +393,10 @@ fun ChatScreen(
             }
         }
 
+        if (state.liveVoiceState.status != "Idle") {
+            val liveText = state.liveVoiceState.outputCaption.ifBlank { state.liveVoiceState.inputCaption }.ifBlank { state.liveVoiceState.error.orEmpty() }
+            VoiceStatusBubble("Live · ${state.liveVoiceState.status}", liveText.ifBlank { "Connected to Gemini Live audio." })
+        }
         ContactDock()
         Spacer(Modifier.height(5.dp))
     }
@@ -458,17 +481,19 @@ fun ChatScreen(
 
     if (showMicRationale) {
         AlertDialog(
-            onDismissRequest = { showMicRationale = false },
+            onDismissRequest = { showMicRationale = false; requestingLiveVoice = false },
             title = { Text("Allow microphone access?") },
-            text = { Text("ZYRA uses your microphone only when you tap the voice orb. The Android speech service may process speech on-device or online, depending on your device and language pack. ZYRA does not save raw microphone recordings. You can revoke access anytime in Android Settings.") },
+            text = { Text("Fast voice uses Android's speech service. Live voice streams microphone audio to Gemini only while Live is active. Zyra does not save raw microphone recordings. Stop Live to end the stream; you can revoke microphone access anytime in Android Settings.") },
             confirmButton = {
                 Button(onClick = {
                     showMicRationale = false
-                    micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                    if (requestingLiveVoice) liveMicPermission.launch(Manifest.permission.RECORD_AUDIO)
+                    else micPermission.launch(Manifest.permission.RECORD_AUDIO)
+                    requestingLiveVoice = false
                 }) { Text("Continue") }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showMicRationale = false }) { Text("Not now") }
+                androidx.compose.material3.TextButton(onClick = { showMicRationale = false; requestingLiveVoice = false }) { Text("Not now") }
             },
             containerColor = ZyraColors.surface,
             titleContentColor = ZyraColors.text,

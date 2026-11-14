@@ -48,12 +48,12 @@ fun OnboardingScreen(onFinished: () -> Unit, viewModel: OnboardingViewModel = hi
     var search by remember { mutableStateOf("") }
     var languageExpanded by remember { mutableStateOf(false) }
     val installedLocales = remember { mutableStateOf(listOf(Locale.getDefault())) }
+    var microphoneGranted by remember {
+        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
+    }
     DisposableEffect(context, microphoneGranted) {
         val catalog = InstalledVoiceLocaleCatalog(context) { installedLocales.value = it }
         onDispose { catalog.close() }
-    }
-    var microphoneGranted by remember {
-        mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED)
     }
     val permissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         microphoneGranted = it

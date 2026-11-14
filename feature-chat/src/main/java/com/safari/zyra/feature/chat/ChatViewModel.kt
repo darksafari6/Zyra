@@ -18,6 +18,7 @@ import com.safari.zyra.core.network.GeminiClient
 import com.safari.zyra.core.network.GeminiImage
 import com.safari.zyra.core.network.GeminiTurn
 import com.safari.zyra.feature.voice.VoiceSession
+import com.safari.zyra.feature.voice.LiveVoiceSession
 import com.safari.zyra.feature.voice.VoiceState
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -41,7 +42,8 @@ class ChatViewModel @Inject constructor(
     private val settingsRepository: SettingsRepository,
     private val apiKeyStore: ApiKeyStore,
     private val geminiClient: GeminiClient,
-    private val voiceSession: VoiceSession
+    private val voiceSession: VoiceSession,
+    private val liveVoiceSession: LiveVoiceSession
 ) : ViewModel() {
     private val activeConversationId = MutableStateFlow(1L)
     private val mutableState = MutableStateFlow(ChatUiState())
@@ -54,12 +56,15 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch { settingsRepository.reduceEffects.collect { enabled -> mutableState.update { it.copy(reduceEffects = enabled) } } }
         viewModelScope.launch { apiKeyStore.hasKey.collect { hasKey -> mutableState.update { it.copy(hasApiKey = hasKey) } } }
         viewModelScope.launch { voiceSession.state.collect { voice -> mutableState.update { it.copy(voiceState = voice) } } }
+        viewModelScope.launch { liveVoiceSession.state.collect { live -> mutableState.update { it.copy(liveVoiceState = live) } } }
     }
 
     fun setReduceEffects(enabled: Boolean) { viewModelScope.launch { settingsRepository.setReduceEffects(enabled) } }
 
-    fun startVoice() { if (!mutableState.value.isStreaming) voiceSession.startListening(activeConversationId.value) }
+    fun startVoice() { if (!mutableState.value.isStreaming) { liveVoiceSession.stop(); voiceSession.startListening(activeConversationId.value) } }
     fun stopVoice() = voiceSession.stop()
+    fun startLiveVoice() { if (!mutableState.value.isStreaming) { voiceSession.stop(); liveVoiceSession.start() } }
+    fun stopLiveVoice() = liveVoiceSession.stop()
     fun stopSpeaking() = voiceSession.stopSpeaking()
     fun voicePermissionDenied() {
         mutableState.update { it.copy(voiceState = VoiceState.Error("Microphone access was denied. Enable it in Android Settings to use voice chat.")) }
@@ -69,6 +74,7 @@ class ChatViewModel @Inject constructor(
         val prompt = text.trim().ifBlank { if (imageUri != null) "Please describe and analyze this image." else "" }
         if (prompt.isBlank() || mutableState.value.isStreaming) return
         if (mutableState.value.voiceState !is VoiceState.Idle) voiceSession.stop()
+        liveVoiceSession.stop()
         viewModelScope.launch {
             mutableState.update { it.copy(isStreaming = true, streamingText = "", error = null) }
             try {
@@ -312,6 +318,7 @@ class ChatViewModel @Inject constructor(
 
     override fun onCleared() {
         voiceSession.stop()
+        liveVoiceSession.stop()
         super.onCleared()
     }
 }

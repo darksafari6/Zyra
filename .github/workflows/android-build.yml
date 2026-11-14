@@ -2,7 +2,7 @@ name: Android build
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, piece-7-completion]
   push:
     tags:
       - "v*"

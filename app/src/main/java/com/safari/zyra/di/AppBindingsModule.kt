@@ -14,6 +14,10 @@ import com.safari.zyra.core.data.security.ApiKeyStore
 import com.safari.zyra.core.data.security.EncryptedApiKeyStore
 import com.safari.zyra.core.network.GeminiClient
 import com.safari.zyra.core.network.GeminiRestClient
+import com.safari.zyra.core.network.GeminiLiveClient
+import com.safari.zyra.core.network.GeminiLiveTransport
+import com.safari.zyra.feature.voice.AndroidLiveAudioEngine
+import com.safari.zyra.feature.voice.LiveAudioEngine
 import dagger.Binds
 import dagger.Module
 import dagger.Provides
@@ -23,6 +27,7 @@ import dagger.hilt.components.SingletonComponent
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.websocket.WebSockets
 import javax.inject.Singleton
 
 @Module
@@ -32,6 +37,8 @@ abstract class AppBindingsModule {
     @Binds @Singleton abstract fun bindChatRepository(implementation: RoomChatRepository): ChatRepository
     @Binds @Singleton abstract fun bindApiKeyStore(implementation: EncryptedApiKeyStore): ApiKeyStore
     @Binds @Singleton abstract fun bindGeminiClient(implementation: GeminiRestClient): GeminiClient
+    @Binds @Singleton abstract fun bindGeminiLiveTransport(implementation: GeminiLiveClient): GeminiLiveTransport
+    @Binds @Singleton abstract fun bindLiveAudioEngine(implementation: AndroidLiveAudioEngine): LiveAudioEngine
 
     companion object {
         @Provides @Singleton
@@ -50,6 +57,7 @@ abstract class AppBindingsModule {
 
         @Provides @Singleton
         fun provideHttpClient(): HttpClient = HttpClient(OkHttp) {
+            install(WebSockets)
             expectSuccess = false
             install(HttpTimeout) {
                 requestTimeoutMillis = 120_000

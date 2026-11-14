@@ -113,3 +113,38 @@ Still required on physical devices/emulators:
 - Signed release only after repository secrets and the release variable are configured.
 
 Never commit API keys, signing credentials or keystore files.
+
+
+## Piece 8 — Zyra Everywhere
+
+This branch now includes the usable integration surfaces and a foreground-only Live voice path:
+
+- Gemini Live WebSocket transport and LiveVoiceSession orchestration: explicit 16 kHz PCM microphone capture, 24 kHz PCM playback, input/output captions, interruption handling and a visible Live/Stop Live control. Fast voice remains available as a manual fallback.
+- Android VoiceInteractionService and VoiceInteractionSessionService, with a compact system assistant surface. Settings includes the Set as default assistant action, which asks Android to grant the assistant role.
+- Quick Settings tile that opens Zyra's visible voice flow, a Glance Ask Zyra home-screen widget, dynamic Ask Zyra and Voice chat shortcuts, and Android Sharesheet support for shared text or a single image.
+- A Stop all assistant activity privacy action. Voice sessions are also stopped when the app leaves the foreground.
+- The foreground microphone-service shell is registered but is not started automatically. Background wake-word listening remains disabled.
+
+### External requirement: Hey Zyra wake word
+
+The offline WakeWordEngine contract remains fail-closed. A real custom Hey Zyra detector requires a licensed wake-word SDK account and the generated phrase model (for example, a Picovoice .ppn model). Those account-specific assets cannot be generated or safely embedded without the owner's licence and model. No microphone is opened for wake-word detection, and the app must not claim that Hey Zyra is listening.
+
+### Remaining verification and hardening
+
+- Validate the Gemini Live wire protocol against the exact model available to the user's API key; implement session resumption and automatic Fast fallback on GoAway/network loss.
+- Package and test the licensed local wake-word model, sensitivity control, call/audio-focus pause behavior and OEM battery guidance after the owner supplies the model/licence.
+- Test the VoiceInteraction role, notification behavior, share intents, widget and Quick Settings tile on Android 9–16 and OEM devices.
+- Run lint, unit tests, assembleDebug and physical-device microphone/route/Doze tests. The GitHub Actions run for this branch is the build gate; a queued/running job is not a pass.
+
+### Piece 8 references
+
+- [Architecture and privacy invariants](docs/architecture-piece-8.md)
+- [Wake-word engine comparison and external asset requirement](docs/wake-word.md)
+- [Permissions, battery method and device test plan](docs/permissions-piece-8.md)
+- [Official Gemini Live API overview](https://aistudio.google.com/docs/live-api)
+- [Official Gemini Live API capabilities](https://aistudio.google.com/docs/live-api/capabilities)
+- [Official Gemini Live WebSocket guide](https://aistudio.google.com/docs/live-api/get-started-websocket)
+
+No local Gradle build or physical-device test has been run from this editing session. Do not treat Piece 8 as release-ready until GitHub Actions is green and the device matrix above passes.
+
+Never commit API keys, SDK licence keys, custom wake-word model assets or signing credentials.
