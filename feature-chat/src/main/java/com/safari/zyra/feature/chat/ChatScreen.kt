@@ -111,13 +111,35 @@ fun ChatScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = LocalContext.current
+    var permissionActionId by remember { mutableStateOf<String?>(null) }
+    val toolPermissionLauncher = rememberLauncherForActivityResult(ActivityResultContracts.RequestMultiplePermissions()) { results ->
+        val id = permissionActionId
+        permissionActionId = null
+        if (id != null && results.values.all { it }) viewModel.confirmToolAction(id)
+    }
     state.pendingToolAction?.let { pending ->
         AlertDialog(
             onDismissRequest = { viewModel.cancelToolAction(pending.id) },
             title = { Text(if (pending.risk.name == "HIGH") "Confirm this action" else "Allow this tool for this session") },
-            text = { Text(pending.preview) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(pending.preview)
+                    if (pending.requiredPermissions.isNotEmpty()) {
+                        Text("Android permission required: " + pending.requiredPermissions.joinToString())
+                    }
+                }
+            },
             confirmButton = {
-                Button(onClick = { viewModel.confirmToolAction(pending.id) }) { Text("Confirm") }
+                Button(onClick = {
+                    val missing = pending.requiredPermissions.filter {
+                        ContextCompat.checkSelfPermission(context, it) != PackageManager.PERMISSION_GRANTED
+                    }
+                    if (missing.isEmpty()) viewModel.confirmToolAction(pending.id)
+                    else {
+                        permissionActionId = pending.id
+                        toolPermissionLauncher.launch(missing.toTypedArray())
+                    }
+                }) { Text("Confirm") }
             },
             dismissButton = {
                 TextButton(onClick = { viewModel.cancelToolAction(pending.id) }) { Text("Cancel") }
