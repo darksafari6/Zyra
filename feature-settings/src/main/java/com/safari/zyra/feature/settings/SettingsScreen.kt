@@ -42,7 +42,7 @@ import com.safari.zyra.feature.voice.InstalledVoiceLocaleCatalog
 import java.util.Locale
 
 @Composable
-fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, viewModel: SettingsViewModel = hiltViewModel()) {
+fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, onRequestAssistantRole: () -> Unit = {}, onStopAssistant: () -> Unit = {}, viewModel: SettingsViewModel = hiltViewModel()) {
     val context = LocalContext.current
     val state by viewModel.state.collectAsState()
     var settings by remember(state.settings) { mutableStateOf(state.settings) }
@@ -136,6 +136,12 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, viewModel:
                 tts.setPitch(settings.voicePitch)
                 tts.speak("Hello, I am Zyra. Your voice settings are ready.", TextToSpeech.QUEUE_FLUSH, null, "zyra-voice-test")
             }) { Text("Test voice") }
+        }
+        SettingsSection("Assistant integration") {
+            Text("Set Zyra as your Android default assistant to use the system assistant gesture or button.")
+            Button(onClick = onRequestAssistantRole, modifier = Modifier.fillMaxWidth()) { Text("Set as default assistant") }
+            Text("Hey Zyra wake-word listening is OFF. A licensed on-device keyword model has not been added, so Zyra does not listen in the background.")
+            OutlinedButton(onClick = onStopAssistant, modifier = Modifier.fillMaxWidth()) { Text("Stop all assistant activity") }
         }
         SettingsSection("Appearance") {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) { Text("Reduce effects"); Switch(reduceEffects, { reduceEffects = it }) }
