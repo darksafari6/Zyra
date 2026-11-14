@@ -42,6 +42,7 @@ class GeminiRestToolModel @Inject constructor(private val http: HttpClient) {
                     is GeminiPart.FunctionCall -> parts.put(part.raw ?: JSONObject().put("functionCall", JSONObject()
                         .put("name", part.value.name).put("args", part.value.arguments)
                         .apply { part.value.id?.let { put("id", it) } }))
+                    is GeminiPart.Raw -> parts.put(part.value)
                 }
             }
             contentJson.put(JSONObject().put("role", turn.role).put("parts", parts))
@@ -87,7 +88,8 @@ class GeminiRestToolModel @Inject constructor(private val http: HttpClient) {
             for (i in 0 until parts.length()) {
                 val item = parts.optJSONObject(i) ?: continue
                 item.optString("text").takeIf { it.isNotBlank() }?.let { emit(GeminiPart.Text(it, JSONObject(item.toString()))) }
-                item.optJSONObject("functionCall")?.let { function ->
+                val function = item.optJSONObject("functionCall")
+                if (function != null) {
                     emit(GeminiPart.FunctionCall(
                         GeminiFunctionCall(
                             function.optString("id").takeIf { it.isNotBlank() },
@@ -96,6 +98,8 @@ class GeminiRestToolModel @Inject constructor(private val http: HttpClient) {
                         ),
                         JSONObject(item.toString())
                     ))
+                } else if (item.has("thoughtSignature") || item.has("thought")) {
+                    emit(GeminiPart.Raw(JSONObject(item.toString())))
                 }
             }
         }
