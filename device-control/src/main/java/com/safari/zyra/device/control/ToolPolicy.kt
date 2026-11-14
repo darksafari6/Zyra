@@ -1,8 +1,9 @@
 package com.safari.zyra.device.control
 
 import com.safari.zyra.core.data.settings.ZyraSettings
+import javax.inject.Inject
 
-class ToolPolicy {
+class ToolPolicy @Inject constructor() {
     fun evaluate(tool: ZyraTool, settings: ZyraSettings, confirmedThisSession: Set<String>): ToolResult? {
         if (!settings.toolsEnabled) return ToolResult.Denied("Device tools are disabled by the global kill switch.")
         if (settings.toolToggles[tool.name] != true) return ToolResult.Denied("The ${tool.name} tool is disabled in Settings.")
