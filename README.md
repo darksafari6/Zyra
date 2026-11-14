@@ -158,7 +158,7 @@ Never commit API keys, SDK licence keys, custom wake-word model assets or signin
 - A registry that only exposes individually enabled tools to Gemini. The global device-tools kill switch and every per-tool toggle default off.
 - Gemini function calling over the existing Ktor HTTP client: function declarations are sent in the request, streamed functionCall parts are parsed, tools execute in the app, functionResponse parts are sent back, and the model continues. The loop is bounded to four tool-call rounds; tool execution has a 12-second timeout and network requests use the configured Ktor timeout.
 - A Compose confirmation bottom sheet: LOW actions run directly, MEDIUM actions require one confirmation per tool per app session, and HIGH actions show the exact arguments and require confirmation every time. Runtime permission prompts are launched only after the user confirms.
-- Built-in tools: open app, open URL, web search handoff, dialer handoff, SMS/WhatsApp prefill, alarm, timer, calendar event, flashlight, media volume, media-key controls, navigation, battery/time/connectivity, Wi-Fi settings, Bluetooth settings and brightness.
+- Built-in tools: open app, open URL, web search handoff, dialer and separately gated direct-call handoffs, SMS/WhatsApp prefill, alarm, timer, calendar event, flashlight, media volume, media-key controls, navigation, battery/time/connectivity, Wi-Fi settings, Bluetooth settings and brightness.
 - Optional sensitive-data tools: current approximate/cached location, clipboard text (only exposed to Gemini when the prompt explicitly asks for clipboard content), and notification summaries. Notification capture is held in memory and remains disabled unless both the global switch and its individual toggle are enabled; Android Notification access is separately required.
 - A session-only Actions log with timestamp, tool, result and redaction of clipboard/location/notification contents. The log is not persisted across app restarts.
 - Room version 4 memory facts with a 3→4 migration. Memory starts disabled and requires explicit first-use consent. The Settings memory section supports viewing, editing, deleting and exporting facts. Memory injection is limited to the latest 20 facts and 2,000 characters. Obvious passwords, API keys, bearer tokens, private-key blocks, JWT-like strings and long card-like number sequences are rejected; this is a heuristic, not a guarantee, so secrets must never be entered.
@@ -167,7 +167,7 @@ Never commit API keys, SDK licence keys, custom wake-word model assets or signin
 
 ### Important safety limits
 
-- Calls always open the dialer. Zyra does not place calls directly and does not request CALL_PHONE.
+- Ordinary calls open the dialer. Direct calls require a separate Settings opt-in, the call_direct tool toggle, an explicit direct-call request, CALL_PHONE permission and confirmation of the exact number.
 - SMS and WhatsApp messages are only prefilled; the user must press Send.
 - Wi-Fi and Bluetooth are never toggled silently; Android settings are opened instead.
 - Brightness requires the Android Modify system settings special access.
