@@ -1,5 +1,7 @@
 package com.safari.zyra
 
+import android.Manifest
+import android.content.pm.PackageManager
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -34,6 +36,7 @@ import com.safari.zyra.feature.chat.ChatScreen
 import com.safari.zyra.feature.onboarding.OnboardingScreen
 import com.safari.zyra.feature.settings.SettingsScreen
 import com.safari.zyra.feature.voice.VoiceSession
+import com.safari.zyra.assistant.service.ZyraAssistantService
 import com.safari.zyra.ui.splash.ZyraSplash
 import dagger.hilt.android.AndroidEntryPoint
 import javax.inject.Inject
@@ -41,6 +44,7 @@ import kotlinx.coroutines.launch
 
 @AndroidEntryPoint
 class MainActivity : ComponentActivity() {
+    private companion object { const val REQUEST_VOICE_PERMISSION = 8302 }
     @Inject lateinit var voiceSession: VoiceSession
     @Inject lateinit var settingsRepository: SettingsRepository
 
@@ -51,6 +55,30 @@ class MainActivity : ComponentActivity() {
         setContent {
             val appearance by settingsRepository.settings.collectAsState(initial = ZyraSettings())
             ZyraTheme(pureBlack = appearance.pureBlack) { ZyraNavigation(settingsRepository) }
+        }
+    }
+
+    override fun onNewIntent(intent: android.content.Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        handleVoiceLaunch(intent)
+    }
+
+    private fun handleVoiceLaunch(source: android.content.Intent?) {
+        if (source?.getBooleanExtra(ZyraAssistantService.EXTRA_OPEN_VOICE, false) != true) return
+        source.removeExtra(ZyraAssistantService.EXTRA_OPEN_VOICE)
+        if (checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED) {
+            voiceSession.startListening()
+        } else {
+            requestPermissions(arrayOf(Manifest.permission.RECORD_AUDIO), REQUEST_VOICE_PERMISSION)
+        }
+    }
+
+    @Deprecated("Permission callback required for the notification Talk action on API 28+.")
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+        if (requestCode == REQUEST_VOICE_PERMISSION && grantResults.firstOrNull() == PackageManager.PERMISSION_GRANTED) {
+            voiceSession.startListening()
         }
     }
 
