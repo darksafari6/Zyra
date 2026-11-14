@@ -88,11 +88,14 @@ class GeminiRestToolModel @Inject constructor(private val http: HttpClient) {
                 val item = parts.optJSONObject(i) ?: continue
                 item.optString("text").takeIf { it.isNotBlank() }?.let { emit(GeminiPart.Text(it, JSONObject(item.toString()))) }
                 item.optJSONObject("functionCall")?.let { function ->
-                    emit(GeminiPart.FunctionCall(GeminiFunctionCall(
-                        function.optString("id").takeIf { it.isNotBlank() },
-                        function.optString("name"),
-                        function.optJSONObject("args") ?: JSONObject()
-                    )))
+                    emit(GeminiPart.FunctionCall(
+                        GeminiFunctionCall(
+                            function.optString("id").takeIf { it.isNotBlank() },
+                            function.optString("name"),
+                            function.optJSONObject("args") ?: JSONObject()
+                        ),
+                        JSONObject(item.toString())
+                    ))
                 }
             }
         }
