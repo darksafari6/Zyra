@@ -483,7 +483,7 @@ fun ChatScreen(
         AlertDialog(
             onDismissRequest = { showMicRationale = false; requestingLiveVoice = false },
             title = { Text("Allow microphone access?") },
-            text = { Text("ZYRA uses your microphone only when you tap the voice orb. The Android speech service may process speech on-device or online, depending on your device and language pack. ZYRA does not save raw microphone recordings. You can revoke access anytime in Android Settings.") },
+            text = { Text("Fast voice uses Android's speech service. Live voice streams microphone audio to Gemini only while Live is active. Zyra does not save raw microphone recordings. Stop Live to end the stream; you can revoke microphone access anytime in Android Settings.") },
             confirmButton = {
                 Button(onClick = {
                     showMicRationale = false
