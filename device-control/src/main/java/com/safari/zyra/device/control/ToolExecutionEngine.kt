@@ -10,6 +10,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 import java.util.UUID
@@ -72,6 +73,8 @@ class ToolExecutionEngine @Inject constructor(
         val id = UUID.randomUUID().toString()
         val result = try {
             withTimeout(12_000) { tool.execute(args) }
+        } catch (timeout: TimeoutCancellationException) {
+            ToolResult.Failed("The tool timed out before Android confirmed the action.")
         } catch (cancelled: CancellationException) {
             throw cancelled
         } catch (failure: Exception) {
