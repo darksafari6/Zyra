@@ -7,7 +7,8 @@ Device tools are opt-in twice: the global Device tools kill switch must be on, a
 | open_app | LOW | Launcher app visibility query | Opens exact package or exact visible launcher label |
 | open_url | LOW | Browser handler | Opens validated HTTP(S) URL |
 | web_search | LOW | Search handler | Opens Android web-search UI; this is not Google Search grounding |
-| call | HIGH | No CALL_PHONE permission; dialer handoff | Opens ACTION_DIAL. Zyra does not place calls directly |
+| call | HIGH | No CALL_PHONE permission; dialer handoff | Opens ACTION_DIAL. User taps Call |
+| call_direct | HIGH | Separate direct-call opt-in, per-tool toggle, CALL_PHONE runtime permission and exact confirmation | Declared only when the user explicitly asks for a direct call; starts ACTION_CALL only after all gates pass |
 | message | HIGH | SMS app; WhatsApp if selected | Prefills SMS or WhatsApp chat. User must tap Send |
 | set_alarm | MEDIUM | Alarm app | Opens system alarm editor; user reviews/saves |
 | set_timer | MEDIUM | Clock app | Opens system timer editor; user reviews/starts |
@@ -37,7 +38,7 @@ Device tools are opt-in twice: the global Device tools kill switch must be on, a
 
 ## Deliberate limits in this pass
 
-- Direct calling is disabled. Calls always open the dialer; no CALL_PHONE flow is shipped.
+- Direct calling is off by default and requires both the Allow direct phone calls setting and call_direct tool toggle, an explicit direct-call request, CALL_PHONE permission and confirmation of the exact number. Ordinary call requests use the dialer.
 - No tool sends an SMS or WhatsApp message without the user pressing Send.
 - Wi-Fi and Bluetooth are never silently toggled.
 - Notification summaries, location and clipboard are separate opt-in tools. Location and clipboard are exposed to Gemini only when the current user prompt explicitly asks; notification capture remains disabled unless the global switch and its individual toggle are enabled. Clipboard content and notification/location contents are redacted from the action log.
