@@ -49,7 +49,7 @@ class VoiceSession @Inject constructor(
             var announcedPendingId: String? = null
             toolEngine.pending.collect { pending ->
                 if (pending == null) announcedPendingId = null
-                else if (pending.id != announcedPendingId) {
+                else if (pending.id != announcedPendingId && (mutableState.value is VoiceState.Thinking || mutableState.value is VoiceState.Speaking)) {
                     announcedPendingId = pending.id
                     val voice = settings.settings.first()
                     tts.speak("Please confirm the requested action on the screen.", voice.voiceLanguage, voice.voiceSpeed, voice.voicePitch, voice.voiceName)
