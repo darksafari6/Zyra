@@ -94,6 +94,10 @@ class SettingsViewModel @Inject constructor(
             settingsRepository.setReduceEffects(reduceEffects)
             settingsRepository.setPureBlack(value.pureBlack)
             settingsRepository.setAutoTitle(value.autoTitle)
+            settingsRepository.setToolsEnabled(value.toolsEnabled)
+            value.toolToggles.forEach { (name, enabled) -> settingsRepository.setToolEnabled(name, enabled) }
+            settingsRepository.setMemoryEnabled(value.memoryEnabled)
+            settingsRepository.setGoogleSearchGrounding(value.googleSearchGrounding)
             mutableState.update { it.copy(saved = true, error = null) }
             onComplete()
         }
@@ -101,6 +105,11 @@ class SettingsViewModel @Inject constructor(
 
     fun clearHistory() { viewModelScope.launch { chatRepository.clearAll(); File(context.filesDir, "zyra_images").deleteRecursively(); mutableState.update { it.copy(messages = emptyList()) } } }
     fun completeOnboardingAgain() { viewModelScope.launch { settingsRepository.setOnboardingCompleted(false) } }
+    fun setMemoryConsent(accepted: Boolean) { viewModelScope.launch { settingsRepository.setMemoryConsent(accepted) } }
+    fun setMemoryEnabled(enabled: Boolean) { viewModelScope.launch { settingsRepository.setMemoryEnabled(enabled) } }
+    fun setToolEnabled(name: String, enabled: Boolean) { viewModelScope.launch { settingsRepository.setToolEnabled(name, enabled) } }
+    fun setToolsEnabled(enabled: Boolean) { viewModelScope.launch { settingsRepository.setToolsEnabled(enabled) } }
+    fun setGoogleSearchGrounding(enabled: Boolean) { viewModelScope.launch { settingsRepository.setGoogleSearchGrounding(enabled) } }
 
     fun exportMarkdown(): String = buildString {
         appendLine("# Zyra chat export")
