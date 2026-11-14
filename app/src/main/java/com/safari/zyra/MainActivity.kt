@@ -56,6 +56,7 @@ class MainActivity : ComponentActivity() {
             val appearance by settingsRepository.settings.collectAsState(initial = ZyraSettings())
             ZyraTheme(pureBlack = appearance.pureBlack) { ZyraNavigation(settingsRepository) }
         }
+        handleVoiceLaunch(intent)
     }
 
     override fun onNewIntent(intent: android.content.Intent) {
