@@ -1,7 +1,7 @@
 package com.safari.zyra.device.control
 
 import android.Manifest
-import android.app.AlarmClock
+import android.provider.AlarmClock
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
