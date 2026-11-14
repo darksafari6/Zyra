@@ -150,6 +150,7 @@ class ChatViewModel @Inject constructor(
                     toolRegistry.declarations(currentSettings.toolToggles).filter { declaration ->
                         when (declaration.name) {
                             "clipboard_read" -> listOf("clipboard", "what did i copy", "read what i copied").any { it in explicitRequest }
+                            "call_direct" -> currentSettings.directCallsEnabled && listOf("call directly", "direct call", "place the call directly", "call without opening the dialer").any { it in explicitRequest }
                             "current_location" -> listOf("my location", "where am i", "current location", "where is my phone").any { it in explicitRequest }
                             "notification_summary" -> listOf("notification", "notifications", "my alerts").any { it in explicitRequest }
                             "remember_fact" -> listOf("remember", "save this", "keep this in memory").any { it in explicitRequest }
