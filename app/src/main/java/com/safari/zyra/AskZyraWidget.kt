@@ -1,6 +1,5 @@
 package com.safari.zyra
 
-import androidx.glance.GlanceId
 import androidx.glance.GlanceModifier
 import androidx.glance.action.clickable
 import androidx.glance.appwidget.GlanceAppWidget
@@ -13,6 +12,7 @@ import androidx.glance.layout.fillMaxSize
 import androidx.glance.layout.padding
 import androidx.glance.text.Text
 import androidx.glance.text.TextStyle
+import androidx.compose.ui.graphics.Color
 import androidx.glance.unit.ColorProvider
 import androidx.glance.unit.dp
 import androidx.glance.unit.sp
