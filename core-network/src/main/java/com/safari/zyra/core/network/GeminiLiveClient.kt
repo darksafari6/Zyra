@@ -4,6 +4,7 @@ import android.util.Base64
 import io.ktor.client.HttpClient
 import io.ktor.client.plugins.websocket.webSocketSession
 import io.ktor.http.URLProtocol
+import io.ktor.http.path
 import io.ktor.websocket.Frame
 import io.ktor.websocket.WebSocketSession
 import io.ktor.websocket.send
