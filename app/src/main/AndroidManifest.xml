@@ -9,6 +9,7 @@
     <uses-permission android:name="android.permission.WRITE_SETTINGS" />
     <uses-permission android:name="android.permission.MODIFY_AUDIO_SETTINGS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <queries>
         <intent><action android:name="android.speech.RecognitionService" /></intent>
         <package android:name="com.zhiliaoapp.musically" />
@@ -46,6 +47,13 @@
                 <data android:mimeType="image/*" />
             </intent-filter>
         </activity>
+        <service
+            android:name="com.safari.zyra.device.control.ZyraNotificationListener"
+            android:label="Zyra notification summaries"
+            android:permission="android.permission.BIND_NOTIFICATION_LISTENER_SERVICE"
+            android:exported="true">
+            <intent-filter><action android:name="android.service.notification.NotificationListenerService" /></intent-filter>
+        </service>
         <service
             android:name="com.safari.zyra.assistant.service.ZyraAssistantService"
             android:exported="false"
