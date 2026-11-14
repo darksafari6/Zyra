@@ -13,6 +13,7 @@ android {
 }
 kotlin { compilerOptions { jvmTarget.set(org.jetbrains.kotlin.gradle.dsl.JvmTarget.JVM_17) } }
 dependencies {
+    implementation(project(":core-data"))
     api(libs.ktor.client.core)
     api(libs.ktor.client.okhttp)
     api(libs.ktor.client.websockets)
