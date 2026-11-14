@@ -6,13 +6,16 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.app.Service
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.content.pm.ServiceInfo
 import android.os.Build
 import android.os.IBinder
 
 /**
- * User-started assistant lifetime shell. The service does not open the microphone
- * by itself; microphone capture belongs to an explicitly started voice/wake session.
+ * User-started microphone-service shell. Callers must request RECORD_AUDIO first
+ * and start this service while an Activity is visible. Wake-word capture is not
+ * enabled by this service; it is deliberately reported as off until a licensed
+ * local detector and its model are shipped.
  */
 class ZyraAssistantService : Service() {
     override fun onCreate() {
@@ -21,29 +24,26 @@ class ZyraAssistantService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        when (intent?.action) {
-            ACTION_STOP -> {
-                isRunning = false
-                stopForeground(STOP_FOREGROUND_REMOVE)
-                stopSelf()
-                return START_NOT_STICKY
-            }
-            ACTION_TALK -> {
-                val launch = packageManager.getLaunchIntentForPackage(packageName)
-                    ?.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP)
-                    ?.putExtra(EXTRA_OPEN_VOICE, true)
-                if (launch != null) startActivity(launch)
-            }
+        if (intent?.action == ACTION_STOP) {
+            isRunning = false
+            stopForeground(STOP_FOREGROUND_REMOVE)
+            stopSelf()
+            return START_NOT_STICKY
+        }
+        if (checkSelfPermission(android.Manifest.permission.RECORD_AUDIO) != PackageManager.PERMISSION_GRANTED) {
+            isRunning = false
+            stopSelf()
+            return START_NOT_STICKY
         }
         return try {
-            isRunning = true
             val notification = buildNotification()
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
                 startForeground(NOTIFICATION_ID, notification, ServiceInfo.FOREGROUND_SERVICE_TYPE_MICROPHONE)
             } else {
                 startForeground(NOTIFICATION_ID, notification)
             }
-            START_STICKY
+            isRunning = true
+            START_NOT_STICKY
         } catch (_: SecurityException) {
             isRunning = false
             stopSelf()
@@ -62,10 +62,15 @@ class ZyraAssistantService : Service() {
             this, 2, Intent(this, ZyraAssistantService::class.java).setAction(ACTION_STOP),
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        val builder = Notification.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_btn_speak_now)
+        val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            Notification.Builder(this, CHANNEL_ID)
+        } else {
+            @Suppress("DEPRECATION")
+            Notification.Builder(this)
+        }
+        builder.setSmallIcon(android.R.drawable.ic_btn_speak_now)
             .setContentTitle("Zyra assistant")
-            .setContentText("Assistant ready · Wake word is off")
+            .setContentText("Assistant service active · Hey Zyra wake word is off")
             .setOngoing(true)
             .setCategory(Notification.CATEGORY_SERVICE)
             .setPriority(Notification.PRIORITY_LOW)
@@ -80,3 +85,31 @@ class ZyraAssistantService : Service() {
             "Stop", stopPending
         ).build())
         return builder.build()
+    }
+
+    private fun createNotificationChannel() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val manager = getSystemService(NotificationManager::class.java)
+            manager.createNotificationChannel(NotificationChannel(
+                CHANNEL_ID, "Zyra assistant", NotificationManager.IMPORTANCE_LOW
+            ).apply { description = "Controls an explicitly started Zyra assistant session." })
+        }
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onDestroy() {
+        isRunning = false
+        super.onDestroy()
+    }
+
+    companion object {
+        const val ACTION_START = "com.safari.zyra.action.START_ASSISTANT"
+        const val ACTION_STOP = "com.safari.zyra.action.STOP_ASSISTANT"
+        const val EXTRA_OPEN_VOICE = "com.safari.zyra.extra.OPEN_VOICE"
+        const val NOTIFICATION_ID = 8301
+        const val CHANNEL_ID = "zyra_assistant"
+        @Volatile var isRunning: Boolean = false
+            private set
+    }
+}
