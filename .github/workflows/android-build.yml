@@ -2,8 +2,9 @@ name: Android build
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, piece-7-completion]
   push:
+    branches: [piece-8-zyra-everywhere]
     tags:
       - "v*"
 
@@ -16,7 +17,7 @@ concurrency:
 
 jobs:
   verify:
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' || github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Check out source
