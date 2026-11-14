@@ -481,7 +481,7 @@ fun ChatScreen(
 
     if (showMicRationale) {
         AlertDialog(
-            onDismissRequest = { showMicRationale = false },
+            onDismissRequest = { showMicRationale = false; requestingLiveVoice = false },
             title = { Text("Allow microphone access?") },
             text = { Text("ZYRA uses your microphone only when you tap the voice orb. The Android speech service may process speech on-device or online, depending on your device and language pack. ZYRA does not save raw microphone recordings. You can revoke access anytime in Android Settings.") },
             confirmButton = {
@@ -493,7 +493,7 @@ fun ChatScreen(
                 }) { Text("Continue") }
             },
             dismissButton = {
-                androidx.compose.material3.TextButton(onClick = { showMicRationale = false }) { Text("Not now") }
+                androidx.compose.material3.TextButton(onClick = { showMicRationale = false; requestingLiveVoice = false }) { Text("Not now") }
             },
             containerColor = ZyraColors.surface,
             titleContentColor = ZyraColors.text,
