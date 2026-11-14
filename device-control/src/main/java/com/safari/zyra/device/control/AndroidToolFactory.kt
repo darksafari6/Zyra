@@ -74,8 +74,12 @@ class AndroidToolFactory @Inject constructor(@ApplicationContext private val con
             if (args.optString("channel").equals("whatsapp", true)) {
                 val digits = number.filter { it.isDigit() }
                 require(digits.length >= 7) { "Enter a full international phone number for WhatsApp." }
-                launch(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/" + digits + "?text=" + Uri.encode(body))))
-                ToolResult.Success("Opened the WhatsApp chat with a prefilled message; review it and tap Send.")
+                val whatsappPackage = listOf("com.whatsapp", "com.whatsapp.w4b").firstOrNull { packageName ->
+                    runCatching { context.packageManager.getPackageInfo(packageName, 0) }.isSuccess
+                } ?: return@tool ToolResult.Failed("WhatsApp or WhatsApp Business is not installed.")
+                launch(Intent(Intent.ACTION_VIEW, Uri.parse("https://wa.me/" + digits + "?text=" + Uri.encode(body)))
+                    .setPackage(whatsappPackage))
+                ToolResult.Success("Opened WhatsApp with a prefilled message; review it and tap Send.")
             } else {
                 launch(Intent(Intent.ACTION_SENDTO, Uri.parse("smsto:" + Uri.encode(number))).putExtra("sms_body", body))
                 ToolResult.Success("Opened the SMS composer with the recipient and message; review it and tap Send.")
