@@ -127,6 +127,11 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, onRequestA
         }
         SettingsSection("Voice") {
             OutlinedButton(onClick = { languageExpanded = true }) { Text("Language: ${languages.firstOrNull { it.toLanguageTag() == settings.voiceLanguage }?.displayName ?: settings.voiceLanguage}") }
+            if (voices.none { it.locale.toLanguageTag().equals(settings.voiceLanguage, ignoreCase = true) }) {
+                OutlinedButton(onClick = { context.startActivity(Intent(TextToSpeech.Engine.ACTION_INSTALL_TTS_DATA)) }) {
+                    Text(stringResource(R.string.install_tts_language_data))
+                }
+            }
             DropdownMenu(languageExpanded, { languageExpanded = false }) {
                 languages.forEach { locale -> DropdownMenuItem(text = { Text("${locale.displayName} (${locale.toLanguageTag()})") }, onClick = { settings = settings.copy(voiceLanguage = locale.toLanguageTag()); languageExpanded = false }) }
             }
