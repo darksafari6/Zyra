@@ -7,6 +7,7 @@ import com.safari.zyra.core.network.GeminiLiveTransport
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
@@ -62,18 +63,35 @@ class LiveVoiceSession @Inject constructor(
                                 outputCaption = mutableState.value.outputCaption + event.text
                             )
                             GeminiLiveEvent.Interrupted -> audio.interruptPlayback()
-                            is GeminiLiveEvent.GoAway -> mutableState.value = mutableState.value.copy(
-                                status = "Session ending",
-                                error = "Gemini is ending this Live session. Stop and reconnect to continue."
-                            )
-                            is GeminiLiveEvent.Failure -> mutableState.value = mutableState.value.copy(
-                                status = "Error", error = event.message
-                            )
+                            is GeminiLiveEvent.GoAway -> {
+                                captureJob?.cancel()
+                                audio.close()
+                                mutableState.value = mutableState.value.copy(
+                                    status = "Session ending",
+                                    error = "Gemini is ending this Live session. Stop and reconnect to continue."
+                                )
+                            }
+                            is GeminiLiveEvent.Failure -> {
+                                captureJob?.cancel()
+                                audio.close()
+                                mutableState.value = mutableState.value.copy(status = "Error", error = event.message)
+                            }
                         }
                     }
                 }
                 captureJob = scope.launch {
-                    audio.capturePcm16kMono().collect { pcm -> transport.sendPcm16kMono(pcm) }
+                    try {
+                        audio.capturePcm16kMono().collect { pcm -> transport.sendPcm16kMono(pcm) }
+                    } catch (cancelled: CancellationException) {
+                        throw cancelled
+                    } catch (failure: Exception) {
+                        mutableState.value = mutableState.value.copy(
+                            status = "Error", error = failure.message ?: "Live microphone capture stopped."
+                        )
+                        eventsJob?.cancel()
+                        transport.close()
+                        audio.close()
+                    }
                 }
             } catch (failure: Exception) {
                 mutableState.value = LiveVoiceUiState(status = "Error", error = failure.message ?: "Could not start Gemini Live.")
