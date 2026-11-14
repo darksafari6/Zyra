@@ -72,7 +72,10 @@ class AndroidLiveAudioEngine @Inject constructor() : LiveAudioEngine {
             while (capturing.get()) {
                 currentCoroutineContext().ensureActive()
                 val count = withContext(Dispatchers.IO) { audioRecord.read(chunk, 0, chunk.size) }
-                if (count > 0) emit(if (count == chunk.size) chunk.copyOf() else chunk.copyOf(count - (count % 2)))
+                if (count > 0) {
+                    val usableBytes = count - (count % 2)
+                    if (usableBytes > 0) emit(if (usableBytes == chunk.size) chunk.copyOf() else chunk.copyOf(usableBytes))
+                }
                 else if (count < 0) error("Microphone read failed: $count")
             }
         } finally {
@@ -123,12 +126,9 @@ class AndroidLiveAudioEngine @Inject constructor() : LiveAudioEngine {
 
     override fun close() {
         capturing.set(false)
-        recorder?.let { runCatching { it.stop() }; it.release() }
+        // Stop unblocks the capture loop; its finally block owns recorder/effect release.
+        recorder?.let { runCatching { it.stop() } }
         recorder = null
-        echoCanceler?.release()
-        noiseSuppressor?.release()
-        echoCanceler = null
-        noiseSuppressor = null
         player?.let { runCatching { it.pause(); it.flush(); it.stop() }; it.release() }
         player = null
     }
