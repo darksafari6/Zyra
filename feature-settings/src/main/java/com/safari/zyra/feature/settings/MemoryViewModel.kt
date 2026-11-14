@@ -20,11 +20,12 @@ class MemoryViewModel @Inject constructor(private val repository: MemoryReposito
     private val mutableError = MutableStateFlow<String?>(null)
     val error: StateFlow<String?> = mutableError.asStateFlow()
     init { viewModelScope.launch { repository.facts.collect { mutableFacts.value = it } } }
-    fun save(key: String, value: String) {
+    fun save(key: String, value: String, replaceId: Long? = null) {
         viewModelScope.launch {
             runCatching {
                 check(settings.settings.first().memoryEnabled) { "Enable long-term memory in Settings before saving facts." }
                 repository.remember(key, value)
+                if (replaceId != null) repository.delete(replaceId)
             }
                 .onFailure { mutableError.value = it.message ?: "Could not save memory." }
                 .onSuccess { mutableError.value = null }
