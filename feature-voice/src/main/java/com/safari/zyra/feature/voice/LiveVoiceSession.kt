@@ -35,15 +35,20 @@ class LiveVoiceSession @Inject constructor(
     private val transport: GeminiLiveTransport,
     private val audio: LiveAudioEngine,
     private val settings: SettingsRepository,
-    private val keys: ApiKeyStore
+    private val keys: ApiKeyStore,
+    private val fastVoiceSession: VoiceSession
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val mutableState = MutableStateFlow(LiveVoiceUiState())
     val state: StateFlow<LiveVoiceUiState> = mutableState.asStateFlow()
     private var captureJob: Job? = null
     private var eventsJob: Job? = null
+    private var activeConversationId: Long = 1L
+    private var fallbackStarted = false
 
-    fun start() {
+    fun start(conversationId: Long = 1L) {
+        activeConversationId = conversationId
+        fallbackStarted = false
         scope.launch {
             stopInternal()
             mutableState.value = LiveVoiceUiState(status = "Connecting")
@@ -63,19 +68,8 @@ class LiveVoiceSession @Inject constructor(
                                 outputCaption = mutableState.value.outputCaption + event.text
                             )
                             GeminiLiveEvent.Interrupted -> audio.interruptPlayback()
-                            is GeminiLiveEvent.GoAway -> {
-                                captureJob?.cancel()
-                                audio.close()
-                                mutableState.value = mutableState.value.copy(
-                                    status = "Session ending",
-                                    error = "Gemini is ending this Live session. Stop and reconnect to continue."
-                                )
-                            }
-                            is GeminiLiveEvent.Failure -> {
-                                captureJob?.cancel()
-                                audio.close()
-                                mutableState.value = mutableState.value.copy(status = "Error", error = event.message)
-                            }
+                            is GeminiLiveEvent.GoAway -> fallbackToFast("Gemini is ending the Live session. Continuing in Fast voice.")
+                            is GeminiLiveEvent.Failure -> fallbackToFast("Live voice disconnected (${event.message}). Continuing in Fast voice.")
                         }
                     }
                 }
@@ -85,12 +79,7 @@ class LiveVoiceSession @Inject constructor(
                     } catch (cancelled: CancellationException) {
                         throw cancelled
                     } catch (failure: Exception) {
-                        mutableState.value = mutableState.value.copy(
-                            status = "Error", error = failure.message ?: "Live microphone capture stopped."
-                        )
-                        eventsJob?.cancel()
-                        transport.close()
-                        audio.close()
+                        fallbackToFast("Live microphone or network failed (${failure.message ?: "connection lost"}). Continuing in Fast voice.")
                     }
                 }
             } catch (failure: Exception) {
@@ -106,6 +95,14 @@ class LiveVoiceSession @Inject constructor(
             runCatching { transport.sendText(text.trim()) }
                 .onFailure { mutableState.value = mutableState.value.copy(error = it.message ?: "Could not send text.") }
         }
+    }
+
+    private fun fallbackToFast(message: String) {
+        if (fallbackStarted) return
+        fallbackStarted = true
+        stopInternal()
+        mutableState.value = LiveVoiceUiState(status = "Fast voice", error = message)
+        fastVoiceSession.startListening(activeConversationId)
     }
 
     fun stop() {
