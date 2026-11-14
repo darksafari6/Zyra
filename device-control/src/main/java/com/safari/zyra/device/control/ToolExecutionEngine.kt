@@ -13,7 +13,7 @@ import kotlinx.coroutines.withTimeout
 import org.json.JSONObject
 import java.util.UUID
 
-data class PendingToolAction(val id: String, val toolName: String, val arguments: JSONObject, val preview: String, val risk: ToolRisk)
+data class PendingToolAction(val id: String, val toolName: String, val arguments: JSONObject, val preview: String, val risk: ToolRisk, val requiredPermissions: Set<String>)
 
 @Singleton
 class ToolExecutionEngine @Inject constructor(
@@ -37,7 +37,7 @@ class ToolExecutionEngine @Inject constructor(
         val policyResult = policy.evaluate(tool, current, confirmedMedium)
         if (policyResult != null) {
             val pendingAction = PendingToolAction(UUID.randomUUID().toString(), name, JSONObject(arguments.toString()),
-                preview(tool, arguments), tool.risk)
+                preview(tool, arguments), tool.risk, tool.requiredPermissions)
             pendingState.value = pendingAction
             val result = ToolResult.NeedsUserAction(policyResult.detail, pendingAction.id)
             audit.record(ToolAuditEntry(pendingAction.id, name, pendingAction.preview, result))
