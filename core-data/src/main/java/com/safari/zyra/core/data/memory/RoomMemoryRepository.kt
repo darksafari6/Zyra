@@ -26,7 +26,10 @@ object SecretDetector {
         Regex("(?i)(password|passcode|secret|api[_ -]?key|access[_ -]?token|private[_ -]?key)\\s*[:=]\\s*\\S+"),
         Regex("(?<!\\d)(?:\\d[ -]?){13,19}(?!\\d)"),
         Regex("(?i)-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
-        Regex("(?i)bearer\\s+[a-z0-9._~+/=-]{12,}")
+        Regex("(?i)bearer\\s+[a-z0-9._~+/=-]{12,}"),
+        Regex("AIza[0-9A-Za-z_-]{30,}"),
+        Regex("(?i)sk-[0-9A-Za-z]{20,}"),
+        Regex("[A-Za-z0-9_-]{12,}\\.[A-Za-z0-9_-]{12,}\\.[A-Za-z0-9_-]{12,}")
     )
     fun looksSensitive(value: String): Boolean = patterns.any { it.containsMatchIn(value) }
 }
