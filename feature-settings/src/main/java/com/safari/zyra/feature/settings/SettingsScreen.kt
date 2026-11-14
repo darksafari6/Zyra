@@ -160,11 +160,22 @@ fun SettingsScreen(onBack: () -> Unit, onRerunOnboarding: () -> Unit, onRequestA
                 Switch(settings.toolsEnabled, { settings = settings.copy(toolsEnabled = it); viewModel.setToolsEnabled(it) })
             }
             Text("Every tool starts disabled. Enable only the tools you want Zyra to use. Medium-risk tools ask once per session; high-risk tools ask every time.")
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Column(Modifier.weight(1f)) {
+                    Text("Allow direct phone calls")
+                    Text("Off by default. Direct calls also require the call_direct tool toggle, Android CALL_PHONE permission, an explicit direct-call request and confirmation of the exact number.", style = MaterialTheme.typography.bodySmall)
+                }
+                Switch(settings.directCallsEnabled, { enabled ->
+                    settings = settings.copy(directCallsEnabled = enabled)
+                    viewModel.setDirectCallsEnabled(enabled)
+                }, enabled = settings.toolsEnabled)
+            }
             val toolCatalog = listOf(
                 Triple("open_app", "Open apps", "LOW"),
                 Triple("open_url", "Open web links", "LOW"),
                 Triple("web_search", "Open web search", "LOW"),
-                Triple("call", "Open dialer (never auto-calls)", "HIGH"),
+                Triple("call", "Open dialer (user taps Call)", "HIGH"),
+                Triple("call_direct", "Place direct call (extra opt-in + permission + exact confirmation)", "HIGH"),
                 Triple("message", "Prefill SMS (you press Send)", "HIGH"),
                 Triple("set_alarm", "Create alarm form", "MEDIUM"),
                 Triple("set_timer", "Create timer form", "MEDIUM"),
