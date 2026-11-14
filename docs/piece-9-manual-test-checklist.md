@@ -13,7 +13,8 @@
 - [ ] Fresh install: global tool switch is off and all individual tool toggles are off.
 - [ ] Enable one low-risk tool only; verify other tools are not declared to Gemini.
 - [ ] Global kill switch off: verify all tool calls return Denied.
-- [ ] High-risk call: exact number appears in confirmation sheet; cancel means dialer never opens; confirm opens dialer only and user must tap Call.
+- [ ] High-risk call: exact number appears in confirmation sheet; cancel means dialer never opens; normal call opens dialer only and user must tap Call.
+- [ ] Direct call: disabled by default; even with both opt-ins enabled, the tool is unavailable unless the current prompt explicitly asks for a direct call; CALL_PHONE permission and exact-number confirmation are required. Denial/cancel must not place a call.
 - [ ] High-risk SMS and WhatsApp: verify prefilled recipient/body; no message sends until user taps Send.
 - [ ] Medium alarm, timer, calendar, flashlight, volume and media controls ask once per session; repeat after process restart.
 - [ ] Flashlight permission denied, granted and permanently denied; torch must never be enabled before confirmation and permission.
@@ -53,6 +54,6 @@
 
 ## Known deferred items
 
-- Direct calling is intentionally disabled; the dialer handoff remains user-controlled.
+- Direct calling is a separate opt-in and must be tested with the device matrix above.
 - Persistent action log and durable notification history are not implemented; notification summary uses a bounded in-memory list.
 - AccessibilityService automation is intentionally out of scope.
