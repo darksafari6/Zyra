@@ -23,11 +23,13 @@ class RoomMemoryRepository @Inject constructor(private val dao: MemoryFactDao) :
 
 object SecretDetector {
     private val patterns = listOf(
-        Regex("(?i)(password|passcode|secret|api[_ -]?key|access[_ -]?token|private[_ -]?key)\\s*[:=]\\s*\\S+"),
+        Regex("(?i)(password|passcode|secret|api[_ -]?key|access[_ -]?token|private[_ -]?key)\\s*(?:is|[:=])\\s*\\S+"),
         Regex("(?<!\\d)(?:\\d[ -]?){13,19}(?!\\d)"),
         Regex("(?i)-----BEGIN (?:RSA |EC |OPENSSH )?PRIVATE KEY-----"),
         Regex("(?i)bearer\\s+[a-z0-9._~+/=-]{12,}"),
         Regex("AIza[0-9A-Za-z_-]{30,}"),
+        Regex("AKIA[0-9A-Z]{16}"),
+        Regex("(?i)gh[pousr]_[A-Za-z0-9]{20,}"),
         Regex("(?i)sk-[0-9A-Za-z]{20,}"),
         Regex("[A-Za-z0-9_-]{12,}\\.[A-Za-z0-9_-]{12,}\\.[A-Za-z0-9_-]{12,}")
     )
