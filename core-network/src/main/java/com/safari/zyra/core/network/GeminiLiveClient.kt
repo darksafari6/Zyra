@@ -28,10 +28,10 @@ sealed interface GeminiLiveEvent {
 }
 
 interface GeminiLiveTransport : java.io.Closeable {
-    override suspend fun connect(apiKey: String, modelId: String, systemInstruction: String)
-    override suspend fun sendPcm16kMono(pcm: ByteArray)
-    override suspend fun sendText(text: String)
-    override fun events(): Flow<GeminiLiveEvent>
+    suspend fun connect(apiKey: String, modelId: String, systemInstruction: String)
+    suspend fun sendPcm16kMono(pcm: ByteArray)
+    suspend fun sendText(text: String)
+    fun events(): Flow<GeminiLiveEvent>
 }
 
 /**
@@ -47,7 +47,7 @@ class GeminiLiveClient @Inject constructor(
     private var socket: WebSocketSession? = null
     private val connected = AtomicBoolean(false)
 
-    suspend fun connect(apiKey: String, modelId: String, systemInstruction: String) {
+    override suspend fun connect(apiKey: String, modelId: String, systemInstruction: String) {
         require(apiKey.isNotBlank()) { "Gemini API key is missing." }
         require(modelId.isNotBlank()) { "Choose a Live model in Settings first." }
         close()
@@ -81,7 +81,7 @@ class GeminiLiveClient @Inject constructor(
         }
     }
 
-    suspend fun sendPcm16kMono(pcm: ByteArray) {
+    override suspend fun sendPcm16kMono(pcm: ByteArray) {
         check(connected.get()) { "Gemini Live session is not ready." }
         require(pcm.isNotEmpty() && pcm.size % 2 == 0) { "PCM must contain complete 16-bit samples." }
         val message = JSONObject().put("realtimeInput", JSONObject().put(
@@ -92,13 +92,13 @@ class GeminiLiveClient @Inject constructor(
         socket?.send(Frame.Text(message.toString()))
     }
 
-    suspend fun sendText(text: String) {
+    override suspend fun sendText(text: String) {
         check(connected.get()) { "Gemini Live session is not ready." }
         socket?.send(Frame.Text(JSONObject().put("realtimeInput", JSONObject().put("text", text)).toString()))
     }
 
     /** Emits every audio part and caption in each server event; consumers must clear playback on Interrupted. */
-    fun events(): Flow<GeminiLiveEvent> = flow {
+    override fun events(): Flow<GeminiLiveEvent> = flow {
         val active = socket ?: return@flow
         try {
             for (frame in active.incoming) {
