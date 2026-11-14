@@ -171,7 +171,9 @@ class AndroidToolFactory @Inject constructor(@ApplicationContext private val con
                 ". Internet connectivity: " + (if (connected) "connected" else "not connected") + ".")
         },
         tool("wifi_settings", "Open Android Wi-Fi settings. Android controls the Wi-Fi switch.", JSONObject().put("type", "OBJECT").put("properties", JSONObject()), ToolRisk.LOW) {
-            launch(Intent(Settings.Panel.ACTION_WIFI)); ToolResult.Success("Opened Android's Wi-Fi panel. Turn Wi-Fi on or off there.")
+            val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) Intent(Settings.Panel.ACTION_WIFI)
+                else Intent(Settings.ACTION_WIFI_SETTINGS)
+            launch(intent); ToolResult.Success("Opened Android Wi-Fi settings. Turn Wi-Fi on or off there.")
         },
         tool("bluetooth_settings", "Open Android Bluetooth settings. Android controls the Bluetooth switch.", JSONObject().put("type", "OBJECT").put("properties", JSONObject()), ToolRisk.LOW) {
             launch(Intent(Settings.ACTION_BLUETOOTH_SETTINGS)); ToolResult.Success("Opened Android Bluetooth settings. Change Bluetooth there.")
