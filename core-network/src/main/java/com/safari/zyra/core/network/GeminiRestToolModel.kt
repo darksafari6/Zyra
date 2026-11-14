@@ -21,7 +21,7 @@ import org.json.JSONObject
 class GeminiRestToolModel @Inject constructor(private val http: HttpClient) {
     suspend fun streamGenerate(
         apiKey: String, modelId: String, systemPrompt: String,
-        contents: List<GeminiToolTurn>, declarations: List<GeminiFunctionDeclaration>
+        contents: List<GeminiToolTurn>, declarations: List<GeminiFunctionDeclaration>, googleSearchGrounding: Boolean = false
     ): Flow<List<GeminiPart>> = flow {
         require(apiKey.isNotBlank()) { "Add your Gemini API key in Settings." }
         val cleanModel = modelId.trim().removePrefix("models/")
@@ -48,10 +48,13 @@ class GeminiRestToolModel @Inject constructor(private val http: HttpClient) {
             functionDeclarations.put(JSONObject().put("name", declaration.name)
                 .put("description", declaration.description).put("parameters", declaration.parameters))
         }
+        val tools = JSONArray()
+        if (functionDeclarations.length() > 0) tools.put(JSONObject().put("functionDeclarations", functionDeclarations))
+        if (googleSearchGrounding) tools.put(JSONObject().put("google_search", JSONObject()))
         val body = JSONObject()
             .put("systemInstruction", JSONObject().put("parts", JSONArray().put(JSONObject().put("text", systemPrompt))))
             .put("contents", contentJson)
-            .put("tools", JSONArray().put(JSONObject().put("functionDeclarations", functionDeclarations)))
+            .put("tools", tools)
         val response = http.post("https://generativelanguage.googleapis.com/v1beta/models/$cleanModel:streamGenerateContent?alt=sse") {
             header("x-goog-api-key", apiKey)
             header(HttpHeaders.ContentType, ContentType.Application.Json.toString())
@@ -63,14 +66,22 @@ class GeminiRestToolModel @Inject constructor(private val http: HttpClient) {
         }
         val channel = response.bodyAsChannel()
         val collected = mutableListOf<GeminiPart>()
+        val groundingSources = linkedSetOf<Pair<String, String>>()
         while (true) {
             val line = channel.readUTF8Line() ?: break
             if (!line.startsWith("data:")) continue
             val payload = line.removePrefix("data:").trim()
             if (payload.isBlank() || payload == "[DONE]") continue
             val root = JSONObject(payload)
-            val parts = root.optJSONArray("candidates")?.optJSONObject(0)
-                ?.optJSONObject("content")?.optJSONArray("parts") ?: continue
+            val candidate = root.optJSONArray("candidates")?.optJSONObject(0)
+            val chunks = candidate?.optJSONObject("groundingMetadata")?.optJSONArray("groundingChunks")
+            if (chunks != null) for (i in 0 until chunks.length()) {
+                val web = chunks.optJSONObject(i)?.optJSONObject("web") ?: continue
+                val uri = web.optString("uri")
+                val title = web.optString("title").ifBlank { uri }
+                if (uri.startsWith("https://")) groundingSources += title to uri
+            }
+            val parts = candidate?.optJSONObject("content")?.optJSONArray("parts") ?: continue
             for (i in 0 until parts.length()) {
                 val item = parts.optJSONObject(i) ?: continue
                 item.optString("text").takeIf { it.isNotBlank() }?.let { collected += GeminiPart.Text(it) }
@@ -82,6 +93,10 @@ class GeminiRestToolModel @Inject constructor(private val http: HttpClient) {
                     ))
                 }
             }
+        }
+        if (groundingSources.isNotEmpty()) {
+            val sources = groundingSources.joinToString("\n") { pair -> "- " + pair.first + ": " + pair.second }
+            collected += GeminiPart.Text("\n\nSources (Google Search grounding):\n" + sources)
         }
         emit(collected)
     }.flowOn(Dispatchers.IO)
