@@ -4,6 +4,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.toList
 import kotlinx.coroutines.test.runTest
 import org.json.JSONObject
+import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -18,7 +19,7 @@ class GeminiToolLoopTest {
             override fun generate(contents: List<GeminiToolTurn>, declarations: List<GeminiFunctionDeclaration>) = flow {
                 count++
                 if (count == 1) {
-                    emit(GeminiPart.FunctionCall(GeminiFunctionCall("call-1", "device_info", JSONObject())))
+                    emit(GeminiPart.FunctionCall(GeminiFunctionCall("call-1", "device_info", mockk<JSONObject>())))
                 } else {
                     secondTurn = contents
                     emit(GeminiPart.Text("Battery is 82%."))
