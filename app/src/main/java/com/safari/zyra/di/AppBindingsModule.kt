@@ -23,6 +23,7 @@ import dagger.hilt.components.SingletonComponent
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.okhttp.OkHttp
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.websocket.WebSockets
 import javax.inject.Singleton
 
 @Module
@@ -50,6 +51,7 @@ abstract class AppBindingsModule {
 
         @Provides @Singleton
         fun provideHttpClient(): HttpClient = HttpClient(OkHttp) {
+            install(WebSockets)
             expectSuccess = false
             install(HttpTimeout) {
                 requestTimeoutMillis = 120_000
