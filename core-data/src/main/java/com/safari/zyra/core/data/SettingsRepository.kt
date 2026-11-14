@@ -22,4 +22,5 @@ interface SettingsRepository {
     suspend fun setMemoryEnabled(enabled: Boolean)
     suspend fun setGoogleSearchGrounding(enabled: Boolean)
     suspend fun setDirectCallsEnabled(enabled: Boolean)
+    suspend fun setListenForStopWhileSpeaking(enabled: Boolean)
 }
