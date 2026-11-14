@@ -1,0 +1,72 @@
+package com.safari.zyra.device.control
+
+import com.safari.zyra.core.data.SettingsRepository
+import javax.inject.Inject
+import javax.inject.Singleton
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeout
+import org.json.JSONObject
+import java.util.UUID
+
+data class PendingToolAction(val id: String, val toolName: String, val arguments: JSONObject, val preview: String, val risk: ToolRisk)
+
+@Singleton
+class ToolExecutionEngine @Inject constructor(
+    private val registry: ToolRegistry,
+    private val settings: SettingsRepository,
+    private val audit: ToolAuditLogger,
+    private val policy: ToolPolicy
+) {
+    private val confirmedMedium = mutableSetOf<String>()
+    private val pendingState = MutableStateFlow<PendingToolAction?>(null)
+    val pending: StateFlow<PendingToolAction?> = pendingState.asStateFlow()
+
+    suspend fun execute(name: String, arguments: JSONObject): ToolResult {
+        val tool = registry.get(name) ?: return ToolResult.Denied("This tool is not available.")
+        val current = settings.settings.first()
+        val policyResult = policy.evaluate(tool, current, confirmedMedium)
+        if (policyResult != null) {
+            val pendingAction = PendingToolAction(UUID.randomUUID().toString(), name, JSONObject(arguments.toString()),
+                preview(tool, arguments), tool.risk)
+            pendingState.value = pendingAction
+            val result = ToolResult.NeedsUserAction(policyResult.detail, pendingAction.id)
+            audit.record(ToolAuditEntry(pendingAction.id, name, pendingAction.preview, result))
+            return result
+        }
+        return runTool(tool, arguments)
+    }
+
+    suspend fun confirmPending(id: String): ToolResult {
+        val pendingAction = pendingState.value ?: return ToolResult.Denied("There is no pending action.")
+        if (pendingAction.id != id) return ToolResult.Denied("This confirmation is no longer current.")
+        val current = settings.settings.first()
+        if (!current.toolsEnabled || current.toolToggles[pendingAction.toolName] != true) {
+            pendingState.value = null
+            return ToolResult.Denied("Device tools were disabled before confirmation.")
+        }
+        val tool = registry.get(pendingAction.toolName) ?: return ToolResult.Denied("This tool is no longer available.")
+        if (tool.risk == ToolRisk.MEDIUM) confirmedMedium += tool.name
+        pendingState.value = null
+        return runTool(tool, pendingAction.arguments)
+    }
+
+    fun cancelPending(id: String) {
+        if (pendingState.value?.id == id) pendingState.value = null
+    }
+
+    fun resetSessionConfirmations() { confirmedMedium.clear() }
+
+    private suspend fun runTool(tool: ZyraTool, args: JSONObject): ToolResult {
+        val id = UUID.randomUUID().toString()
+        val result = runCatching { withTimeout(12_000) { tool.execute(args) } }
+            .getOrElse { failure -> ToolResult.Failed(failure.message ?: "The action timed out or failed.") }
+        audit.record(ToolAuditEntry(id, tool.name, preview(tool, args), result))
+        return result
+    }
+
+    private fun preview(tool: ZyraTool, args: JSONObject): String =
+        "${tool.description}\nRequested details: ${args.toString().take(500)}"
+}
