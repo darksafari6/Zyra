@@ -130,6 +130,24 @@ class AndroidToolFactory @Inject constructor(@ApplicationContext private val con
             audio.setStreamVolume(AudioManager.STREAM_MUSIC, (max * percent / 100.0).toInt(), 0)
             ToolResult.Success("Set media volume to approximately $percent percent.")
         },
+        tool("media_control", "Send a play, pause, play-pause, next or previous event to the active media app.", JSONObject()
+            .put("type", "OBJECT").put("properties", JSONObject().put("action", JSONObject().put("type", "STRING")
+                .put("enum", JSONArray().put("play").put("pause").put("play_pause").put("next").put("previous"))))
+            .put("required", JSONArray().put("action")), ToolRisk.MEDIUM) { args ->
+            val action = ToolArgumentValidator.requiredString(args, "action", 20).lowercase()
+            val keyCode = when (action) {
+                "play" -> android.view.KeyEvent.KEYCODE_MEDIA_PLAY
+                "pause" -> android.view.KeyEvent.KEYCODE_MEDIA_PAUSE
+                "play_pause" -> android.view.KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE
+                "next" -> android.view.KeyEvent.KEYCODE_MEDIA_NEXT
+                "previous" -> android.view.KeyEvent.KEYCODE_MEDIA_PREVIOUS
+                else -> error("Unsupported media action.")
+            }
+            val audio = context.getSystemService(AudioManager::class.java)
+            audio.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_DOWN, keyCode))
+            audio.dispatchMediaKeyEvent(android.view.KeyEvent(android.view.KeyEvent.ACTION_UP, keyCode))
+            ToolResult.Success("Sent the $action media control event. The active media app determines the result.")
+        },
         tool("navigation", "Open a map route to a destination.", stringSchema("destination", "Place name or address."), ToolRisk.LOW) { args ->
             val destination = ToolArgumentValidator.requiredString(args, "destination", 300)
             launch(Intent(Intent.ACTION_VIEW, Uri.parse("google.navigation:q=${Uri.encode(destination)}")))
@@ -140,7 +158,9 @@ class AndroidToolFactory @Inject constructor(@ApplicationContext private val con
             val percent = battery.getIntProperty(BatteryManager.BATTERY_PROPERTY_CAPACITY)
             val cm = context.getSystemService(android.net.ConnectivityManager::class.java)
             val connected = cm.activeNetworkInfo?.isConnected == true
-            ToolResult.Success("Battery: ${if (percent >= 0) "$percent%" else "unavailable"}. Internet connectivity: ${if (connected) "connected" else "not connected"}.")
+            val localTime = java.text.SimpleDateFormat("yyyy-MM-dd HH:mm z", java.util.Locale.getDefault()).format(java.util.Date())
+            ToolResult.Success("Local time: " + localTime + ". Battery: " + (if (percent >= 0) "$percent%" else "unavailable") +
+                ". Internet connectivity: " + (if (connected) "connected" else "not connected") + ".")
         },
         tool("wifi_settings", "Open Android Wi-Fi settings. Android controls the Wi-Fi switch.", JSONObject().put("type", "OBJECT").put("properties", JSONObject()), ToolRisk.LOW) {
             launch(Intent(Settings.Panel.ACTION_WIFI)); ToolResult.Success("Opened Android's Wi-Fi panel. Turn Wi-Fi on or off there.")
