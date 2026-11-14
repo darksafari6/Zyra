@@ -102,6 +102,7 @@ class SettingsViewModel @Inject constructor(
             value.toolToggles.forEach { (name, enabled) -> settingsRepository.setToolEnabled(name, enabled) }
             settingsRepository.setMemoryEnabled(value.memoryEnabled)
             settingsRepository.setGoogleSearchGrounding(value.googleSearchGrounding)
+            settingsRepository.setDirectCallsEnabled(value.directCallsEnabled)
             mutableState.update { it.copy(saved = true, error = null) }
             onComplete()
         }
@@ -114,6 +115,7 @@ class SettingsViewModel @Inject constructor(
     fun setToolEnabled(name: String, enabled: Boolean) { viewModelScope.launch { settingsRepository.setToolEnabled(name, enabled) } }
     fun setToolsEnabled(enabled: Boolean) { viewModelScope.launch { settingsRepository.setToolsEnabled(enabled) } }
     fun setGoogleSearchGrounding(enabled: Boolean) { viewModelScope.launch { settingsRepository.setGoogleSearchGrounding(enabled) } }
+    fun setDirectCallsEnabled(enabled: Boolean) { viewModelScope.launch { settingsRepository.setDirectCallsEnabled(enabled) } }
 
     fun exportMarkdown(): String = buildString {
         appendLine("# Zyra chat export")
