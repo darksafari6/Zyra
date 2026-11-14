@@ -3,6 +3,7 @@ package com.safari.zyra.device.control
 import com.safari.zyra.core.data.settings.ZyraSettings
 import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
+import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -11,7 +12,7 @@ class ToolPolicyTest {
     private fun tool(risk: ToolRisk) = object : ZyraTool {
         override val name = "test_tool"
         override val description = "test"
-        override val parametersSchema = JSONObject()
+        override val parametersSchema = mockk<JSONObject>()
         override val risk = risk
         override val requiredPermissions = emptySet<String>()
         override suspend fun execute(arguments: JSONObject) = ToolResult.Success("ok")
