@@ -37,9 +37,9 @@ class GeminiRestToolModel @Inject constructor(private val http: HttpClient) {
                     is GeminiPart.Text -> {
                         val parsed = runCatching { JSONObject(part.value) }.getOrNull()
                         if (parsed?.has("functionResponse") == true) parts.put(parsed)
-                        else parts.put(JSONObject().put("text", part.value))
+                        else parts.put(part.raw ?: JSONObject().put("text", part.value))
                     }
-                    is GeminiPart.FunctionCall -> parts.put(JSONObject().put("functionCall", JSONObject()
+                    is GeminiPart.FunctionCall -> parts.put(part.raw ?: JSONObject().put("functionCall", JSONObject()
                         .put("name", part.value.name).put("args", part.value.arguments)
                         .apply { part.value.id?.let { put("id", it) } }))
                 }
@@ -86,7 +86,7 @@ class GeminiRestToolModel @Inject constructor(private val http: HttpClient) {
             val parts = candidate?.optJSONObject("content")?.optJSONArray("parts") ?: continue
             for (i in 0 until parts.length()) {
                 val item = parts.optJSONObject(i) ?: continue
-                item.optString("text").takeIf { it.isNotBlank() }?.let { emit(GeminiPart.Text(it)) }
+                item.optString("text").takeIf { it.isNotBlank() }?.let { emit(GeminiPart.Text(it, JSONObject(item.toString()))) }
                 item.optJSONObject("functionCall")?.let { function ->
                     emit(GeminiPart.FunctionCall(GeminiFunctionCall(
                         function.optString("id").takeIf { it.isNotBlank() },
