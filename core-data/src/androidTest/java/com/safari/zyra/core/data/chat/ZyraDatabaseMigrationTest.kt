@@ -11,6 +11,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import kotlinx.coroutines.runBlocking
+import com.safari.zyra.core.data.memory.MemoryFact
 
 @RunWith(AndroidJUnit4::class)
 class ZyraDatabaseMigrationTest {
@@ -20,7 +21,7 @@ class ZyraDatabaseMigrationTest {
     fun closeDatabase() { database?.close() }
 
     @Test
-    fun migratesVersionTwoMessagesIntoDefaultConversation() = runBlocking {
+    fun migratesVersionTwoMessagesAndCreatesMemoryTableInVersionFour() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         val name = "zyra-v2-migration-test.db"
         context.deleteDatabase(name)
@@ -34,7 +35,7 @@ class ZyraDatabaseMigrationTest {
         old.close()
 
         database = Room.databaseBuilder(context, ZyraDatabase::class.java, name)
-            .addMigrations(ZyraDatabase.MIGRATION_2_3)
+            .addMigrations(ZyraDatabase.MIGRATION_2_3, ZyraDatabase.MIGRATION_3_4)
             .allowMainThreadQueries()
             .build()
         val migrated = database!!.chatMessageDao().latest(5, 1)
@@ -43,5 +44,7 @@ class ZyraDatabaseMigrationTest {
         assertEquals(1L, migrated.single().conversation_id)
         assertEquals("keep this message", migrated.single().text)
         assertNotNull(database!!.conversationDao().getById(1))
+        database!!.memoryFactDao().upsert(MemoryFact(factKey = "language", factValue = "Roman Urdu"))
+        assertEquals("Roman Urdu", database!!.memoryFactDao().latest(5).single().factValue)
     }
 }
